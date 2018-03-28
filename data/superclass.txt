@@ -1,2 +1,3 @@
 stop sign
 speed limit
+yield

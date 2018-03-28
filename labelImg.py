@@ -176,8 +176,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.labelList.itemChanged.connect(self.labelItemChanged)
         listLayout.addWidget(self.labelList)
         
-        # add associate button
-
+        # Jchen27 = 03152018 add associate button
         self.associateButton = QPushButton('associate', self)
         self.associateButton.setToolTip('Get clipBoardInfo by stop')
         self.associateButton.clicked.connect(self.associateButtonState)
@@ -240,6 +239,7 @@ class MainWindow(QMainWindow, WindowMixin):
         # Jchen =20180305: add a widget for webbrowser to load map
         # page viewer
         self.webViewer = QWebEngineView()
+        self.webViewer.setMinimumHeight(100)
         self.webViewer.page()
         self.webViewer.load(QUrl(self.defaultURL))
 
@@ -306,9 +306,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         imgInfoListContainer = QWidget()
         imgInfoListContainer.setLayout(self.imgInfoLayout)
-        #self.imgInfo.itemActivated.connect(self.labelSelectionChanged)
-        #self.imgInfo.itemSelectionChanged.connect(self.labelSelectionChanged)
-        #self.imgInfo.itemDoubleClicked.connect(self.editLabel)
+
         # Connect to itemChanged to detect checkbox changes.
         #self.imgInfo.itemChanged.connect(self.labelItemChanged)
 
@@ -321,7 +319,6 @@ class MainWindow(QMainWindow, WindowMixin):
 
         self.dockFeatures = QDockWidget.DockWidgetClosable | QDockWidget.DockWidgetFloatable
         self.dock.setFeatures(self.dock.features() ^ self.dockFeatures)
-
 
         # Actions
         action = partial(newAction, self)
@@ -585,6 +582,16 @@ class MainWindow(QMainWindow, WindowMixin):
             self.openDirDialog(dirpath=self.filePath)
 
     ## Support Functions ##
+    # jchen = 20180327 get refresh the imginfo
+
+    def refreshImgInfo(self):
+        shapes = self.canvas.shapes
+        for i in range(len(shapes)):
+            shapes[i].points
+
+        pass
+        #self.imgXmlInfos
+        pass
 
     # jchen = 20180316 get clipboard info by focus on associatebutton
     def associateButtonState(self):
@@ -895,6 +902,14 @@ class MainWindow(QMainWindow, WindowMixin):
             self._noSelectionSlot = True
             self.canvas.selectShape(self.itemsToShapes[item])
             shape = self.itemsToShapes[item]
+            #print(item)
+            numOfShape = 0
+            for s in range(len(self.canvas.shapes)):
+                self.imgXmlInfos[s].checkBox.setChecked(False)
+                if shape == self.canvas.shapes[s]:
+                    numOfShape = s
+
+            self.imgXmlInfos[numOfShape].checkBox.setChecked(True)
             # Add Chris
             self.diffcButton.setChecked(shape.difficult)
 
@@ -1030,7 +1045,7 @@ class MainWindow(QMainWindow, WindowMixin):
         for item, shape in self.itemsToShapes.items():
             item.setCheckState(Qt.Checked if value else Qt.Unchecked)
 
-    def loadFile(self, filePath=None):
+    def loadFile(self, filePath=None,updateWebbrowser = True):
         """Load the specified file, or the last opened file if None."""
         self.resetState()
         self.canvas.setEnabled(False)
@@ -1078,11 +1093,13 @@ class MainWindow(QMainWindow, WindowMixin):
             #print('Img path: ', get_exif_data(Image.open(unicodeFilePath)))
 
             try:
+
                 self.geoInfo = get_lat_lon(get_exif_data(Image.open(unicodeFilePath)))  #self.geoInfo  = (lat,lon) or (lat,lon, alt)
-                googleQueryUrl = 'https://www.google.com/maps/search/?api=1&query='
-                imgUrl = googleQueryUrl+'{:.7f}'.format(self.geoInfo[0])+','+'{:.7f}'.format(self.geoInfo[1])
-                self.webViewer.load(QUrl(imgUrl))
-                self.urlbar.setText(imgUrl)
+                if updateWebbrowser:
+                    googleQueryUrl = 'https://www.google.com/maps/search/?api=1&query='
+                    imgUrl = googleQueryUrl+'{:.7f}'.format(self.geoInfo[0])+','+'{:.7f}'.format(self.geoInfo[1])
+                    self.webViewer.load(QUrl(imgUrl))
+                    self.urlbar.setText(imgUrl)
                 #print(imgUrl)
             except:
                 print('loading img geoInfo failed.')
@@ -1134,15 +1151,14 @@ class MainWindow(QMainWindow, WindowMixin):
                     #self.imgInfo.clear()
                     self.imgXmlInfos = []
                     count = 0
-
+                    #QWidget().back
                     for info in bndboxInfo:
-
                         self.imgXmlInfos.append(BoundingBoxWidget())
                         self.imgInfoLayout.addWidget(self.imgXmlInfos[count].boundingBoxInfoLayoutContainer)
                         #item = QListWidgetItem("hello")
                         #self.imgInfo.addItem(item)
                         #BoundingBoxWidget().dropDownBoxs
-                        QComboBox().acceptDrops()
+                        #QComboBox().acceptDrops()
                         try:
                             with open('data\superclass.txt','r') as superclass:
                                 dropitems = superclass.readlines()
@@ -1155,13 +1171,27 @@ class MainWindow(QMainWindow, WindowMixin):
                                 for line in dropitems:
                                     line = line.strip()
                                     self.imgXmlInfos[count].dropDownBoxs['sub'].addItem(line)
+
+
+                            QComboBoxSub = self.imgXmlInfos[count].dropDownBoxs['sub']
+                            QComboBoxSub.setEditable(True)
+                            # create a completer with the strings in the column as model
+                            allStrings = [QComboBoxSub.itemText(i) for i in range(QComboBoxSub.count())]
+
+                            autoComplete = QCompleter(allStrings)
+                            QComboBoxSub.setCompleter(autoComplete)
+
+
                         except:
                             print('load class failed')
-
+                        #QLineEdit().textChanged()
                         for key in info:
                            if key in self.imgXmlInfos[count].labelLineEdits:
                                 self.imgXmlInfos[count].labelLineEdits[key].setText(str(info[key]))
-                                self.imgXmlInfos[count].labelLineEdits[key].returnPressed.connect(self.lineEditChanged)
+                                self.imgXmlInfos[count].labelLineEdits[key].textChanged.connect(lambda: self.lineEditChanged(count))
+
+                        # lambda: self.lineEditChanged(count)
+                        # partial(self.lineEditChanged, count)
                         # Using image geoinfo as bounding box geoinfo.
                         try:
                             if(len(self.geoInfo) == 3):
@@ -1174,7 +1204,21 @@ class MainWindow(QMainWindow, WindowMixin):
                         except:
                             print('No Geoinfo')
 
+                        # order the number of bounding box
+                        self.imgXmlInfos[count].numberOfBoundingBoxs.setText(str(count+1))
+                        #self.imgXmlInfos[count].numberOfBoundingBoxs.setReadOnly(Ture)
                         count += 1
+
+                    #imgInfoScroll = QScrollArea()
+                    #self.imgInfoLayout.addWidget(imgInfoScroll)
+                    #imgInfoScroll.setWidget(self.imgInfoListContainer)
+                    # imgInfoScroll.setWidgetResizable(False)
+                    # self.imgInfoScrollBars = {
+                    #     Qt.Vertical: imgInfoScroll.verticalScrollBar()
+                    # }
+                    #self.imgInfoScrollArea = imgInfoScroll
+
+
                 else:
                     self.imgInfodock.setWidget(BoundingBoxWidget())
                 #     for info in bndboxInfo:
@@ -1201,8 +1245,9 @@ class MainWindow(QMainWindow, WindowMixin):
         return False
 
     # jchen27 = 20180322 lineedit hit enter
-    def lineEditChanged(self):
+    def lineEditChanged(self,order):
         self.setDirty()
+        print("order",order)
         try:
             count = 0
             for shape in self.canvas.shapes:
@@ -1216,8 +1261,11 @@ class MainWindow(QMainWindow, WindowMixin):
                     shape.points[2] = QPointF(xmin+width,ymin+height)
                     shape.points[3] = QPointF(xmin,ymin+height)
                 count += 1
+            self.canvas.loadShapes(self.canvas.shapes)
         except:
             print('Using editor to change shape failed')
+
+
 
     def parseXML(self, filepath):
         assert filepath.endswith(XML_EXT), "Unsupport file format"
@@ -1298,6 +1346,7 @@ class MainWindow(QMainWindow, WindowMixin):
         settings[SETTING_FILL_COLOR] = self.fillColor
         settings[SETTING_RECENT_FILES] = self.recentFiles
         settings[SETTING_ADVANCE_MODE] = not self._beginner
+        settings[SETTING_DOCK_GEOMETRY] = self.dock.saveGeometry()
         if self.defaultSaveDir and os.path.exists(self.defaultSaveDir):
             settings[SETTING_SAVE_DIR] = ustr(self.defaultSaveDir)
         else:
@@ -1485,8 +1534,10 @@ class MainWindow(QMainWindow, WindowMixin):
             imgFileName = os.path.basename(self.filePath)
             savedFileName = os.path.splitext(imgFileName)[0] + XML_EXT
             savedPath = os.path.join(imgFileDir, savedFileName)
-            self._saveFile(savedPath if self.labelFile
-                           else self.saveFileDialog())
+            self._saveFile(savedPath)
+            # jchen27 = 03272018 comment the first time save dir check
+            # self._saveFile(savedPath if self.labelFile
+            #               else self.saveFileDialog())
 
     def saveFileAs(self, _value=False):
         assert not self.image.isNull(), "cannot save empty image"
@@ -1618,21 +1669,44 @@ class BoundingBoxWidget(QWidget):
         self.labelLineEdits = {}
         self.dropDownBoxs = {}
 
-        boundingBoxInfoLayout = QHBoxLayout()
-        boundingBoxInfoLayout.setContentsMargins(0, 0, 0, 0)
+        self.checkBox = QCheckBox()
+        self.checkBox.setMaximumWidth(20)
+        self.numberOfBoundingBoxs = QLineEdit()
+        self.numberOfBoundingBoxs.setMaximumWidth(50)
+        self.copyButton = QPushButton('Copy Geo')
+        self.copyButton.setMaximumWidth(90)
 
+        topLayout = QHBoxLayout()
+        topLayout.setAlignment(Qt.AlignLeft)
+        boundingBoxInfoLayout = QGridLayout()
+        boundingBoxInfoLayout.setContentsMargins(0, 0, 0, 0)
+        vLayout = QVBoxLayout()
+        vLayout.setContentsMargins(0, 0, 0, 0)
+
+        topLayout.addWidget(self.checkBox)
+        topLayout.addWidget(self.numberOfBoundingBoxs)
+        topLayout.addWidget(self.copyButton)
+
+        x = 0
+        y = 1
         for itr in range(len(lineEditLabelsName)):
-            boundingBoxInfoLayout.addWidget(QLabel(lineEditLabelsName[itr] + ': '))
+            boundingBoxInfoLayout.addWidget(QLabel(lineEditLabelsName[itr] + ': '),x/6, x % 6)
             self.labelLineEdits[lineEditLabelsName[itr]] = QLineEdit()
-            boundingBoxInfoLayout.addWidget(self.labelLineEdits[lineEditLabelsName[itr]])
+            boundingBoxInfoLayout.addWidget(self.labelLineEdits[lineEditLabelsName[itr]],x/6,y % 6)
+            x += 2
+            y += 2
 
         for itr in range(len(dropDownBoxLabelsname)):
-            boundingBoxInfoLayout.addWidget(QLabel(dropDownBoxLabelsname[itr] + ': '))
+            boundingBoxInfoLayout.addWidget(QLabel(dropDownBoxLabelsname[itr] + ': '),x/6,x % 6)
             self.dropDownBoxs[dropDownBoxLabelsname[itr]] = QComboBox()
-            boundingBoxInfoLayout.addWidget(self.dropDownBoxs[dropDownBoxLabelsname[itr]])
+            boundingBoxInfoLayout.addWidget(self.dropDownBoxs[dropDownBoxLabelsname[itr]],x/6 , y % 6)
+            x += 2
+            y += 2
 
+        vLayout.addLayout(topLayout)
+        vLayout.addLayout(boundingBoxInfoLayout)
         self.boundingBoxInfoLayoutContainer = QWidget()
-        self.boundingBoxInfoLayoutContainer.setLayout(boundingBoxInfoLayout)
+        self.boundingBoxInfoLayoutContainer.setLayout(vLayout)
 
 
 
