@@ -274,18 +274,22 @@ class MainWindow(QMainWindow, WindowMixin):
         # change the webbroswer url
         self.webViewer.urlChanged.connect(self.renew_urlbar)
 
-        webbrowerLayout = QVBoxLayout()
-        webbrowerLayout.setContentsMargins(0, 0, 0, 0)
-        webbrowerLayout.addWidget(self.navigation_bar) #add navigation_bar
-        webbrowerLayout.addWidget(self.webViewer)
-        webbrowerContainer = QWidget()
-        webbrowerContainer.setLayout(webbrowerLayout)
+        webBrowserLayout = QVBoxLayout()
+        webBrowserLayout.setContentsMargins(0, 0, 0, 0)
+        webBrowserLayout.addWidget(self.navigation_bar) #add navigation_bar
+        webBrowserLayout.addWidget(self.webViewer)
+        webBrowserContainer = QWidget()
+        webBrowserContainer.setLayout(webBrowserLayout)
 
+        # add scroll to webbrowser
+        webScrollArea = QScrollArea()
+        webScrollArea.setWidgetResizable(True)
+        webScrollArea.setWidget(webBrowserContainer)
 
         # Jchen =20180305: add a webbrowser and dock to move faster
-        self.webDock = QDockWidget(u'Road Sign Map', self)
-        self.webDock.setObjectName(u'Brower')
-        self.webDock.setWidget(webbrowerContainer)
+        self.webDock = QDockWidget(u'Traffic Sign Map', self)
+        self.webDock.setObjectName(u'Browser')
+        self.webDock.setWidget(webScrollArea)
 
         self.addDockWidget(Qt.RightDockWidgetArea, self.webDock)
         self.webDock.setFeatures(QDockWidget.DockWidgetFloatable)
@@ -713,6 +717,8 @@ class MainWindow(QMainWindow, WindowMixin):
         assert self.beginner()
         self.canvas.setEditing(False)
         self.actions.create.setEnabled(False)
+        #self.shapeSelectionChanged(True)
+        # start here 0328
 
     def toggleDrawingSensitive(self, drawing=True):
         """In the middle of drawing, toggling between modes should be disabled."""
@@ -817,6 +823,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.actions.edit.setEnabled(selected)
         self.actions.shapeLineColor.setEnabled(selected)
         self.actions.shapeFillColor.setEnabled(selected)
+
 
     def addLabel(self, shape):
         item = HashableQListWidgetItem(shape.label)
@@ -1088,10 +1095,6 @@ class MainWindow(QMainWindow, WindowMixin):
 
             # Jchen 20180315 Load image geoInfo
 
-            #geoFilePath = unicodeFilePath.replace('\\', '/')
-            #print('Img path: ', unicodeFilePath)
-            #print('Img path: ', get_exif_data(Image.open(unicodeFilePath)))
-
             try:
 
                 self.geoInfo = get_lat_lon(get_exif_data(Image.open(unicodeFilePath)))  #self.geoInfo  = (lat,lon) or (lat,lon, alt)
@@ -1147,7 +1150,15 @@ class MainWindow(QMainWindow, WindowMixin):
                     imgInfoListContainer = QWidget()
                     imgInfoListContainer.setLayout(self.imgInfoLayout)
 
-                    self.imgInfodock.setWidget(imgInfoListContainer)
+                    # jchen 0328 add n
+                    imgInfoScroll = QScrollArea()
+                    imgInfoScroll.setWidget(imgInfoListContainer)
+                    imgInfoScroll.setWidgetResizable(True)
+                    self.imgInfoScrollBars = {
+                        Qt.Vertical: imgInfoScroll.verticalScrollBar()
+                    }
+                    self.imgInfoScrollArea = imgInfoScroll
+                    self.imgInfodock.setWidget(self.imgInfoScrollArea)
                     #self.imgInfo.clear()
                     self.imgXmlInfos = []
                     count = 0
@@ -1155,10 +1166,7 @@ class MainWindow(QMainWindow, WindowMixin):
                     for info in bndboxInfo:
                         self.imgXmlInfos.append(BoundingBoxWidget())
                         self.imgInfoLayout.addWidget(self.imgXmlInfos[count].boundingBoxInfoLayoutContainer)
-                        #item = QListWidgetItem("hello")
-                        #self.imgInfo.addItem(item)
-                        #BoundingBoxWidget().dropDownBoxs
-                        #QComboBox().acceptDrops()
+
                         try:
                             with open('data\superclass.txt','r') as superclass:
                                 dropitems = superclass.readlines()
@@ -1209,29 +1217,8 @@ class MainWindow(QMainWindow, WindowMixin):
                         #self.imgXmlInfos[count].numberOfBoundingBoxs.setReadOnly(Ture)
                         count += 1
 
-                    #imgInfoScroll = QScrollArea()
-                    #self.imgInfoLayout.addWidget(imgInfoScroll)
-                    #imgInfoScroll.setWidget(self.imgInfoListContainer)
-                    # imgInfoScroll.setWidgetResizable(False)
-                    # self.imgInfoScrollBars = {
-                    #     Qt.Vertical: imgInfoScroll.verticalScrollBar()
-                    # }
-                    #self.imgInfoScrollArea = imgInfoScroll
-
-
                 else:
                     self.imgInfodock.setWidget(BoundingBoxWidget())
-                #     for info in bndboxInfo:
-                #         for key in info:
-                #             infoStr += key+': '+ str(info[key])+' '
-                #         # Using image geoinfo as bounding box geoinfo.
-                #         if(len(self.geoInfo) == 3):
-                #             infoStr += ' latitude: ' + '{:.7f}'.format(self.geoInfo[0]) + ' longtitdue: ' +  '{:.7f}'.format(self.geoInfo[1])  \
-                #                        + ' altitude: ' +  str(self.geoInfo[2])
-                #         elif(len(self.geoInfo) == 2):
-                #             infoStr += ' latitude: ' + '{:.7f}'.format(self.geoInfo[0]) + ' longtitdue: ' + '{:.7f}'.format(self.geoInfo[1])
-                #         infoStr += '\n'
-                # self.imgInfo.setText(infoStr)
 
             self.setWindowTitle(__appname__ + ' ' + filePath)
 
@@ -1246,8 +1233,8 @@ class MainWindow(QMainWindow, WindowMixin):
 
     # jchen27 = 20180322 lineedit hit enter
     def lineEditChanged(self,order):
+        pass
         self.setDirty()
-        print("order",order)
         try:
             count = 0
             for shape in self.canvas.shapes:
@@ -1264,7 +1251,6 @@ class MainWindow(QMainWindow, WindowMixin):
             self.canvas.loadShapes(self.canvas.shapes)
         except:
             print('Using editor to change shape failed')
-
 
 
     def parseXML(self, filepath):
