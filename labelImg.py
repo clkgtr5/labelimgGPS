@@ -297,13 +297,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.dockFeatures = QDockWidget.DockWidgetClosable | QDockWidget.DockWidgetFloatable
         self.dock.setFeatures(self.dock.features() ^ self.dockFeatures)
 
-        # Jchen = 20180322 add a Qwidget as bounding box
-
         # Jchen = 20180311 add a dock to show the image infomation
-
-        #self.imgInfo = QListWidget()
-        #self.createSubclassButton = Qbox
-        #self.imgInfo.setReadOnly(True)
         self.imgInfoLayout = QVBoxLayout()
         self.imgInfoLayout.setContentsMargins(0, 0, 0, 0)
         #self.imgInfoLayout.addWidget(self.imgInfo)
@@ -312,8 +306,6 @@ class MainWindow(QMainWindow, WindowMixin):
         imgInfoListContainer.setLayout(self.imgInfoLayout)
 
         # Connect to itemChanged to detect checkbox changes.
-        #self.imgInfo.itemChanged.connect(self.labelItemChanged)
-
         self.imgInfodock = QDockWidget(u'image info', self)
         self.imgInfodock.setObjectName(u'img  infos')
         self.imgInfodock.setWidget(imgInfoListContainer)
@@ -330,7 +322,7 @@ class MainWindow(QMainWindow, WindowMixin):
                       'Ctrl+Q', 'quit', u'Quit application')
 
         open = action('&Open', self.openFile,
-                      'Ctrl+O', 'icons/open.png', u'Open image or label file')
+                      'Ctrl+O', 'open', u'Open image or label file')
 
         opendir = action('&Open Dir', self.openDirDialog,
                          'Ctrl+u', 'open', u'Open Dir')
@@ -1233,7 +1225,6 @@ class MainWindow(QMainWindow, WindowMixin):
 
     # jchen27 = 20180322 lineedit hit enter
     def lineEditChanged(self,order):
-        pass
         self.setDirty()
         try:
             count = 0
