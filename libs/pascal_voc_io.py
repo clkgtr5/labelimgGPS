@@ -19,7 +19,7 @@ class PascalVocWriter:
         self.boxlist = []
         self.localImgPath = localImgPath
         self.verified = False
-
+        self.object_items = {}
     def prettify(self, elem):
         """
             Return a pretty-printed XML string for the Element.
@@ -74,11 +74,65 @@ class PascalVocWriter:
         segmented.text = '0'
         return top
 
-    def addBndBox(self, xmin, ymin, xmax, ymax, name, difficult):
+    def addBndBox(self, xmin, ymin, xmax, ymax, name, difficult, objectItems = None):
         bndbox = {'xmin': xmin, 'ymin': ymin, 'xmax': xmax, 'ymax': ymax}
         bndbox['name'] = name
         bndbox['difficult'] = difficult
+        try:
+            bndbox['latitude'] = objectItems['latitude']
+            bndbox['longitude'] = objectItems['longitude']
+            bndbox['altitude'] = objectItems['altitude']
+            bndbox['superclass'] = objectItems['superclass']
+            bndbox['subclass'] = objectItems['subclass']
+            bndbox['SignMainGeneralOID'] = objectItems['SignMainGeneralOID']
+            bndbox['ID'] = objectItems['ID']
+            bndbox['LaneDirection'] = objectItems['LaneDirection']
+            bndbox['Marker'] = objectItems['Marker']
+            bndbox['City'] = objectItems['City']
+            bndbox['County'] = objectItems['County']
+            bndbox['District'] = objectItems['District']
+            bndbox['STREETNAME'] = objectItems['STREETNAME']
+            bndbox['MUTCDCode'] = objectItems['MUTCDCode']
+            bndbox['Retired'] = objectItems['Retired']
+            bndbox['Replaced'] = objectItems['Replaced']
+            bndbox['SignAge'] = objectItems['SignAge']
+            bndbox['TWN_TID'] = objectItems['TWN_TID']
+            bndbox['TWN_MI'] = objectItems['TWN_MI']
+            bndbox['QCFLAG'] = objectItems['QCFLAG']
+            bndbox['MIN_TWN_FMI'] = objectItems['MIN_TWN_FMI']
+            bndbox['MAX_TWN_TMI'] = objectItems['MAX_TWN_TMI']
+            bndbox['SR_SID'] = objectItems['SR_SID']
+            bndbox['OFFSET'] = objectItems['OFFSET']
+            bndbox['PublishDate'] = objectItems['PublishDate']
+        except:
+            bndbox['latitude'] = ""
+            bndbox['longitude'] = ""
+            bndbox['altitude'] = ""
+            bndbox['superclass'] = ""
+            bndbox['subclass'] = ""
+            bndbox['SignMainGeneralOID'] = ""
+            bndbox['ID'] = ""
+            bndbox['LaneDirection'] = ""
+            bndbox['Marker'] = ""
+            bndbox['City'] = ""
+            bndbox['County'] = ""
+            bndbox['District'] = ""
+            bndbox['STREETNAME'] = ""
+            bndbox['MUTCDCode'] = ""
+            bndbox['Retired'] = ""
+            bndbox['Replaced'] = ""
+            bndbox['SignAge'] = ""
+            bndbox['TWN_TID'] = ""
+            bndbox['TWN_MI'] = ""
+            bndbox['QCFLAG'] = ""
+            bndbox['MIN_TWN_FMI'] = ""
+            bndbox['MAX_TWN_TMI'] = ""
+            bndbox['SR_SID'] = ""
+            bndbox['OFFSET'] = ""
+            bndbox['PublishDate'] = ""
+            print('objectItems adding failed')
         self.boxlist.append(bndbox)
+
 
     def appendObjects(self, top):
         for each_object in self.boxlist:
@@ -100,6 +154,64 @@ class PascalVocWriter:
                 truncated.text = "0"
             difficult = SubElement(object_item, 'difficult')
             difficult.text = str( bool(each_object['difficult']) & 1 )
+
+            # add new xml labels
+            loaction_item = SubElement(object_item, 'location')
+            latitude = SubElement(loaction_item, 'latitude')
+            latitude.text = str(each_object['latitude'])
+            longitude = SubElement(loaction_item, 'longitude')
+            longitude.text = str(each_object['longitude'])
+
+            altitude = SubElement(loaction_item, 'altitude')
+            altitude.text = str(each_object['altitude'])
+
+            try:
+                superclass = SubElement(object_item, 'superclass')
+                superclass.text = str(each_object['superclass'])
+                subclass = SubElement(object_item, 'subclass')
+                subclass.text = str(each_object['subclass'])
+                SignMainGeneralOID = SubElement(object_item, 'SignMainGeneralOID')
+                SignMainGeneralOID.text = str(each_object['SignMainGeneralOID'])
+                ID = SubElement(object_item, 'ID')
+                ID.text = str(each_object['ID'])
+                Marker = SubElement(object_item, 'Marker')
+                Marker.text = str(each_object['Marker'])
+                City = SubElement(object_item, 'City')
+                City.text = str(each_object['City'])
+                County = SubElement(object_item, 'County')
+                County.text = str(each_object['County'])
+                District = SubElement(object_item, 'District')
+                District.text = str(each_object['District'])
+                STREETNAME = SubElement(object_item, 'STREETNAME')
+                STREETNAME.text = str(each_object['STREETNAME'])
+                MUTCDCode = SubElement(object_item, 'MUTCDCode')
+                MUTCDCode.text = str(each_object['MUTCDCode'])
+                Retired = SubElement(object_item, 'Retired')
+                Retired.text = str(each_object['Retired'])
+                Replaced = SubElement(object_item, 'Replaced')
+                Replaced.text = str(each_object['Replaced'])
+                SignAge = SubElement(object_item, 'SignAge')
+                SignAge.text = str(each_object['SignAge'])
+                TWN_TID = SubElement(object_item, 'TWN_TID')
+                TWN_TID.text = str(each_object['TWN_TID'])
+                TWN_MI = SubElement(object_item, 'TWN_MI')
+                TWN_MI.text = str(each_object['TWN_MI'])
+                QCFLAG = SubElement(object_item, 'QCFLAG')
+                QCFLAG.text = str(each_object['QCFLAG'])
+                MIN_TWN_FMI = SubElement(object_item, 'MIN_TWN_FMI')
+                MIN_TWN_FMI.text = str(each_object['MIN_TWN_FMI'])
+                MAX_TWN_TMI = SubElement(object_item, 'MAX_TWN_TMI')
+                MAX_TWN_TMI.text = str(each_object['MAX_TWN_TMI'])
+                SR_SID = SubElement(object_item, 'SR_SID')
+                SR_SID.text = str(each_object['SR_SID'])
+                OFFSET = SubElement(object_item, 'OFFSET')
+                OFFSET.text = str(each_object['OFFSET'])
+                PublishDate = SubElement(object_item, 'PublishDate')
+                PublishDate.text = str(each_object['PublishDate'])
+            except Exception as e:
+                print('Exception append:',str(e))
+
+            # bndbox xml labels
             bndbox = SubElement(object_item, 'bndbox')
             xmin = SubElement(bndbox, 'xmin')
             xmin.text = str(each_object['xmin'])

@@ -5,6 +5,7 @@ import os.path
 import re
 import sys
 import subprocess
+import json
 
 from functools import partial
 from collections import defaultdict
@@ -103,8 +104,9 @@ class MainWindow(QMainWindow, WindowMixin):
         self.setWindowTitle(__appname__)
 
         self.defaultURL = "https://www.google.com/maps"
-                          #"http://www.arcgis.com/home/webmap/viewer.html?url=http%3A%2F%2Fmaps.vtrans.vermont.gov" \
-                          #"%2Farcgis%2Frest%2Fservices%2FAMP%2FSign_Symbols%2FFeatureServer&source=sd"
+                          # "http://www.arcgis.com/home/webmap/viewer.html?url=http%3A%2F%2Fmaps.vtrans.vermont.gov" \
+                          # "%2Farcgis%2Frest%2Fservices%2FAMP%2FSign_Symbols%2FFeatureServer&source=sd"
+                          # "https://rawgit.com/VTrans/signs-data-viewer/master/index.html"
         # Load setting in the main thread
         self.settings = Settings()
         self.settings.load()
@@ -135,9 +137,15 @@ class MainWindow(QMainWindow, WindowMixin):
        
         self.itemsToShapes = {}
         self.shapesToItems = {}
-        self.bBoxWidgetsToShapes = {}
-        self.shapesTobBoxWidget = {}
+
+        # map the img info items (boundingBoxWidget class) to shape.
+        # self.bBoxWidgetsToShapes = {}
+        # self.shapesTobBoxWidget = {}
         self.prevLabelText = ''
+        # save xml object labels value
+        self.objects = {}
+        self.objectItems = {}
+
 
         listLayout = QVBoxLayout()
         listLayout.setContentsMargins(0, 0, 0, 0)
@@ -882,7 +890,7 @@ class MainWindow(QMainWindow, WindowMixin):
             if self.usingPascalVocFormat is True:
                 print ('Img: ' + self.filePath + ' -> Its xml: ' + annotationFilePath)
                 self.labelFile.savePascalVocFormat(annotationFilePath, shapes, self.filePath, self.imageData,
-                                                   self.lineColor.getRgb(), self.fillColor.getRgb())
+                                                   self.lineColor.getRgb(), self.fillColor.getRgb(),objects = self.objects)
             else:
                 self.labelFile.save(annotationFilePath, shapes, self.filePath, self.imageData,
                                     self.lineColor.getRgb(), self.fillColor.getRgb())
@@ -1069,7 +1077,6 @@ class MainWindow(QMainWindow, WindowMixin):
 
         if unicodeFilePath and os.path.exists(unicodeFilePath):
             if LabelFile.isLabelFile(unicodeFilePath):
-                #print("in labelfile")
                 try:
                     self.labelFile = LabelFile(unicodeFilePath)
                 except LabelFileError as e:
@@ -1154,7 +1161,7 @@ class MainWindow(QMainWindow, WindowMixin):
     def loadImgInfo(self, xmlPath):
         if os.path.isfile(xmlPath):
             bndboxInfo = self.parseXML(xmlPath)
-    
+
             # add the imageinfomation to imginfodock
             self.imgInfoLayout = QVBoxLayout()
             self.imgInfoLayout.setContentsMargins(0, 0, 0, 0)
@@ -1172,6 +1179,8 @@ class MainWindow(QMainWindow, WindowMixin):
             self.imgInfodock.setWidget(self.imgInfoScrollArea)
             # self.imgInfo.clear()
             self.imgXmlInfos = []
+
+            # add the boundingBoxWidget children
             count = 0
             for info in bndboxInfo:
                 self.imgXmlInfos.append(BoundingBoxWidget())
@@ -1182,12 +1191,15 @@ class MainWindow(QMainWindow, WindowMixin):
                         for line in dropitems:
                             line = line.strip()
                             self.imgXmlInfos[count].dropDownBoxs['sup'].addItem(line)
-
+                        #self.imgXmlInfos[count].dropDownBoxs['sup'].setObjectName()
                     with open('data\subclass.txt', 'r') as superclass:
                         dropitems = superclass.readlines()
                         for line in dropitems:
                             line = line.strip()
                             self.imgXmlInfos[count].dropDownBoxs['sub'].addItem(line)
+
+                    self.imgXmlInfos[count].pasteButton.setObjectName('pushButton_'+str(count))
+                    self.imgXmlInfos[count].pasteButton.clicked.connect(self.pasteGeo)
 
                     QComboBoxSub = self.imgXmlInfos[count].dropDownBoxs['sub']
                     QComboBoxSub.setEditable(True)
@@ -1224,6 +1236,24 @@ class MainWindow(QMainWindow, WindowMixin):
         else:
             self.imgInfodock.setWidget(BoundingBoxWidget())
 
+    def pasteGeo(self):
+        clipboardText = QApplication.clipboard().text()
+        #print('self.sender().objectName()', self.sender().objectName())
+        bndCount = int(self.sender().objectName().split('_')[1])
+        #print('bndCount',bndCount)
+        try:
+            clipboardText = json.loads(clipboardText)
+            self.objectItems['latitude'] = clipboardText['latitude']
+            self.objectItems['longitude'] = clipboardText['longitude']
+            self.objects[bndCount] = self.objectItems
+            self.imgXmlInfos[bndCount].labelLineEdits['lat'].setText('{:.7f}'.format(clipboardText['latitude']))
+            self.imgXmlInfos[bndCount].labelLineEdits['lon'].setText('{:.7f}'.format(clipboardText['longitude']))
+            self.setDirty()
+            print('latitude:', clipboardText['latitude'], 'longitude', clipboardText['longitude'], 'type ',
+                  type(clipboardText))
+        except Exception as e:
+            print('failed',str(e),'\n',clipboardText)
+            pass
     # jchen = 20180322 lineedit hit enter
     def lineEditChanged(self,order):
         self.setDirty()

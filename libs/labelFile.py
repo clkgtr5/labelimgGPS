@@ -29,7 +29,18 @@ class LabelFile(object):
         self.verified = False
 
     def savePascalVocFormat(self, filename, shapes, imagePath, imageData,
-                            lineColor=None, fillColor=None, databaseSrc=None):
+                            lineColor=None, fillColor=None, databaseSrc=None, objects = None):
+        """
+        :param filename:
+        :param shapes:
+        :param imagePath:
+        :param imageData:
+        :param lineColor:
+        :param fillColor:
+        :param databaseSrc:
+        :param objectItems: is the objectItems data for xml file to write
+        :return:
+        """
         imgFolderPath = os.path.dirname(imagePath)
         imgFolderName = os.path.split(imgFolderPath)[-1]
         imgFileName = os.path.basename(imagePath)
@@ -44,15 +55,21 @@ class LabelFile(object):
                                  imageShape, localImgPath=imagePath)
         writer.verified = self.verified
 
+        count = 0
         for shape in shapes:
             points = shape['points']
             label = shape['label']
             # Add Chris
             difficult = int(shape['difficult'])
             bndbox = LabelFile.convertPoints2BndBox(points)
-            writer.addBndBox(bndbox[0], bndbox[1], bndbox[2], bndbox[3], label, difficult)
-
+            try:
+                print('objects[count]', objects[count])
+                writer.addBndBox(bndbox[0], bndbox[1], bndbox[2], bndbox[3], label, difficult,objectItems = objects[count])
+            except:
+                writer.addBndBox(bndbox[0], bndbox[1], bndbox[2], bndbox[3], label, difficult)
+            count += 1
         writer.save(targetFile=filename)
+
         return
 
     def toggleVerify(self):
