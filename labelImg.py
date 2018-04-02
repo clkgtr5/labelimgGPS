@@ -142,6 +142,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.shapesToBndWidgets = {}
         self.pasteGeosToBndWidgets = {}
         self.pasteAllsToBndWidgets = {}
+        self.QComboBoxSubsToBndWidgets = {}
 
         self.bndNum = 0
 
@@ -1209,12 +1210,19 @@ class MainWindow(QMainWindow, WindowMixin):
 
 
             QComboBoxSub = bndWidget.dropDownBoxs['sub']
-            QComboBoxSub.setEditable(True)
-            # create a completer with the strings in the column as model
-            allStrings = [QComboBoxSub.itemText(i) for i in range(QComboBoxSub.count())]
+            QComboBoxSub.setObjectName('QComboBoxSub_' + str(self.bndNum))
+            self.QComboBoxSubsToBndWidgets[QComboBoxSub.objectName()] = bndWidget
 
+
+            # create a completer with the strings in the column as model
+            QComboBoxSub.setEditable(True)
+            allStrings = [QComboBoxSub.itemText(i) for i in range(QComboBoxSub.count())]
             autoComplete = QCompleter(allStrings)
             QComboBoxSub.setCompleter(autoComplete)
+
+            #add event function
+            QComboBoxSub.currentTextChanged.connect(self.QComboBoxSubChanged)
+
             self.bndNum += 1
         except Exception as e:
             print('Exception in addImgInfo:', str(e))
@@ -1337,27 +1345,21 @@ class MainWindow(QMainWindow, WindowMixin):
             print('Exception in pasteAll:', str(e), '\n', clipboardText)
             pass
 
-
-    # jchen = 20180322 lineedit hit enter
-    # def lineEditChanged(self,order):
-    #     self.setDirty()
-    #     try:
-    #         count = 0
-    #         for shape in self.canvas.shapes:
-    #             xmin = int(self.imgXmlInfos[count].labelLineEdits['x'].text())
-    #             ymin = int(self.imgXmlInfos[count].labelLineEdits['y'].text())
-    #             width = int(self.imgXmlInfos[count].labelLineEdits['w'].text())
-    #             height = int(self.imgXmlInfos[count].labelLineEdits['h'].text())
-    #             if (1920,1080,1920,1080)>(xmin,ymin,xmin+width,ymin+height) >(0,0,0,0):
-    #                 shape.points[0] = QPointF(xmin,ymin)
-    #                 shape.points[1] = QPointF(xmin+width,ymin)
-    #                 shape.points[2] = QPointF(xmin+width,ymin+height)
-    #                 shape.points[3] = QPointF(xmin,ymin+height)
-    #             count += 1
-    #         self.canvas.loadShapes(self.canvas.shapes)
-    #     except:
-    #         print('Using editor to change shape failed')
-
+    #jchen = 20180402 new
+    def QComboBoxSubChanged(self):
+        QComboBoxSubName = self.sender().objectName()
+        print('in QComboBoxSubChanged')
+        try:
+            bndBoxWidget = self.QComboBoxSubsToBndWidgets[QComboBoxSubName]
+            shape = self.bndWidgetsToShapes[bndBoxWidget]
+        except:
+            return
+        try:
+            subclassText = bndBoxWidget.dropDownBoxs['sub'].currentText()
+            self.objects[shape]['subclass'] = subclassText
+            self.setDirty()
+        except Exception as e:
+            print('Exception in QComboBoxSubChanged:',str(e))
 
     def parseXML(self, filepath):
         assert filepath.endswith(XML_EXT), "Unsupport file format"
