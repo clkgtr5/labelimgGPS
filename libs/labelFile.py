@@ -54,7 +54,6 @@ class LabelFile(object):
         writer = PascalVocWriter(imgFolderName, imgFileName,
                                  imageShape, localImgPath=imagePath)
         writer.verified = self.verified
-
         count = 0
         for shape in shapes:
             points = shape['points']
@@ -63,9 +62,9 @@ class LabelFile(object):
             difficult = int(shape['difficult'])
             bndbox = LabelFile.convertPoints2BndBox(points)
             try:
-                print('objects[count]', objects[count])
                 writer.addBndBox(bndbox[0], bndbox[1], bndbox[2], bndbox[3], label, difficult,objectItems = objects[count])
-            except:
+            except Exception as e:
+                print('Exception in savePascalVocFormat labelFile.py:',str(e))
                 writer.addBndBox(bndbox[0], bndbox[1], bndbox[2], bndbox[3], label, difficult)
             count += 1
         writer.save(targetFile=filename)

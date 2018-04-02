@@ -30,8 +30,6 @@ except ImportError:
 # Add External libs
 from PIL.ExifTags import TAGS, GPSTAGS
 from PIL import Image
-#from arcgis.gis import GIS
-#from arcgis.widgets import widgets
 from xml.etree import ElementTree
 from xml.etree.ElementTree import Element, SubElement
 from lxml import etree
@@ -142,15 +140,17 @@ class MainWindow(QMainWindow, WindowMixin):
         # map the img info items (boundingBoxWidget class) to shape.
         self.bndWidgetsToShapes = {}
         self.shapesToBndWidgets = {}
+        self.pasteGeosToBndWidgets = {}
+        self.pasteAllsToBndWidgets = {}
+
+        self.bndNum = 0
+
         self.prevLabelText = ''
         # save xml object labels value
         self.objects = {}
-        self.objectItems = {}
-
 
         listLayout = QVBoxLayout()
         listLayout.setContentsMargins(0, 0, 0, 0)
-
 
         # Create a widget for using default label
         self.useDefaultLabelCheckbox = QCheckBox(u'Use default label')
@@ -604,7 +604,6 @@ class MainWindow(QMainWindow, WindowMixin):
     # jchen = 20180316 get clipboard info by focus on associatebutton
     def associateButtonState(self):
         self.clipBoardInfo.setText(QApplication.clipboard().text())
-        print('how many shapes',len(self.canvas.shapes))
         return
     # navigate_to_url function
 
@@ -892,12 +891,19 @@ class MainWindow(QMainWindow, WindowMixin):
                         difficult = s.difficult)
 
         shapes = [format_shape(shape) for shape in self.canvas.shapes]
+
+        obejcts = []
+        for shape in self.canvas.shapes:
+            try:
+                obejcts.append(self.objects[shape])
+            except Exception as e:
+                pritn('Exception in convert objects in savePascal:', str(e))
         # Can add differrent annotation formats here
         try:
             if self.usingPascalVocFormat is True:
                 print ('Img: ' + self.filePath + ' -> Its xml: ' + annotationFilePath)
                 self.labelFile.savePascalVocFormat(annotationFilePath, shapes, self.filePath, self.imageData,
-                                                   self.lineColor.getRgb(), self.fillColor.getRgb(),objects = self.objects)
+                                                   self.lineColor.getRgb(), self.fillColor.getRgb(),objects = obejcts)
             else:
                 self.labelFile.save(annotationFilePath, shapes, self.filePath, self.imageData,
                                     self.lineColor.getRgb(), self.fillColor.getRgb())
@@ -965,6 +971,7 @@ class MainWindow(QMainWindow, WindowMixin):
             generate_color = generateColorByText(text)
             shape = self.canvas.setLastLabel(text, generate_color, generate_color)
             self.addLabel(shape)
+
             if self.beginner():  # Switch to edit mode.
                 self.canvas.setEditing(True)
                 self.actions.create.setEnabled(True)
@@ -1146,8 +1153,14 @@ class MainWindow(QMainWindow, WindowMixin):
                         self.loadPascalXMLByFilename(xmlPath)
 
                 #Jchen = 20180316 add image info dock for bound box info
-                #xmlPath = os.path.splitext(filePath)[0] + XML_EXT
-                self.loadImgInfo(self.canvas.shapes)
+                xmlPath = os.path.splitext(filePath)[0] + XML_EXT
+                shapes = self.canvas.shapes
+
+                signinfos = self.parseXML(xmlPath)
+                print('signinfos:',len(signinfos),'shapes:',len(shapes))
+                for count in range(len(shapes)):
+                    self.objects[shapes[count]] = signinfos[count]
+                self.loadImgInfo(shapes)
 
             self.setWindowTitle(__appname__ + ' ' + filePath)
 
@@ -1166,7 +1179,10 @@ class MainWindow(QMainWindow, WindowMixin):
         bndWidget = BoundingBoxWidget()
         self.shapesToBndWidgets[shape] = bndWidget
         self.bndWidgetsToShapes[bndWidget] = shape
-
+        try:
+            object = self.objects[shape]
+        except:
+            self.objects[shape] = None
         self.imgInfoLayout.addWidget(bndWidget.boundingBoxInfoLayoutContainer)
         #bndWidget.setObjectName("BoundingBoxWidget_{}".format(count))
         try:
@@ -1177,7 +1193,17 @@ class MainWindow(QMainWindow, WindowMixin):
                     bndWidget.dropDownBoxs['sub'].addItem(line)
 
             pasteGeoButton = bndWidget.pasteButton
+            pasteGeoButton.setObjectName('pasteGeo_'+str(self.bndNum))
             pasteGeoButton.clicked.connect(self.pasteGeo)
+
+            self.pasteGeosToBndWidgets[pasteGeoButton.objectName()] = bndWidget
+
+            # pasteAllbutton = bndWidget.pasteButton
+            # pasteAllbutton.setObjectName('pasteAll_' + str(self.bndNum))
+            # pasteAllbutton.clicked.connect(self.pasteAll)
+            #
+            # self.pasteAllsToBndWidgets[pasteGeoButton.objectName()] = bndWidget
+
 
             QComboBoxSub = bndWidget.dropDownBoxs['sub']
             QComboBoxSub.setEditable(True)
@@ -1186,16 +1212,23 @@ class MainWindow(QMainWindow, WindowMixin):
 
             autoComplete = QCompleter(allStrings)
             QComboBoxSub.setCompleter(autoComplete)
-
-        except:
+            self.bndNum += 1
+        except Exception as e:
+            print('Exception in addImgInfo:', str(e))
             print('load class failed')
 
         # partial(self.lineEditChanged, count)
         # Using image geoinfo as bounding box geoinfo.
         try:
+            latText = self.objects[shape]['latitude']
+            longText =  self.objects[shape]['longitude']
+
+            bndWidget.labelLineEdits['lat'].setText('{:.7f}'.format(float(latText)))
+            bndWidget.labelLineEdits['lon'].setText('{:.7f}'.format(float(longText)))
+
+        except:
             bndWidget.labelLineEdits['lat'].setText('{:.7f}'.format(self.geoInfo[0]))
             bndWidget.labelLineEdits['lon'].setText('{:.7f}'.format(self.geoInfo[1]))
-        except:
             print('No Geoinfo')
         #bndWidget.numberOfBoundingBoxs.setText(str(count + 1))
 
@@ -1204,6 +1237,8 @@ class MainWindow(QMainWindow, WindowMixin):
             return
         bndBoxWidget = self.shapesToBndWidgets[shape]
         bndBoxWidget.boundingBoxInfoLayoutContainer.setVisible(False)
+        self.imgInfoLayout.removeWidget(bndBoxWidget.boundingBoxInfoLayoutContainer)
+        del self.objects[shape]
         del self.shapesToBndWidgets[shape]
         del self.bndWidgetsToShapes[bndBoxWidget]
 
@@ -1229,76 +1264,135 @@ class MainWindow(QMainWindow, WindowMixin):
             #self.imgXmlInfos = []
 
             # add the boundingBoxWidget children
-            count = 0
+            self.bndNum = 0 # count is len()
             for shape in shapes:
                 self.addImgInfo(shape)
-            self.bndNum = count # count is len()
+
         else:
             self.imgInfodock.setWidget(BoundingBoxWidget())
+
     def pasteGeo(self):
         clipboardText = QApplication.clipboard().text()
-        print(self.parent())
+        pasteGeoName = self.sender().objectName()
+        bndBoxWidget = self.pasteGeosToBndWidgets[pasteGeoName]
+        shape = self.bndWidgetsToShapes[bndBoxWidget]
         try:
             clipboardText = json.loads(clipboardText)
-            self.objectItems['latitude'] = clipboardText['latitude']
-            self.objectItems['longitude'] = clipboardText['longitude']
-            self.objects[shape] = self.objectItems
+            self.objects[shape]['latitude'] = clipboardText['latitude']
+            self.objects[shape]['longitude'] = clipboardText['longitude']
            #print('imgXmlInfos name:', self.imgXmlInfos[bndCount].objectName())
-            self.imgXmlInfos[bndCount].labelLineEdits['lat'].setText('{:.7f}'.format(clipboardText['latitude']))
-            self.imgXmlInfos[bndCount].labelLineEdits['lon'].setText('{:.7f}'.format(clipboardText['longitude']))
+            bndBoxWidget.labelLineEdits['lat'].setText('{:.7f}'.format(clipboardText['latitude']))
+            bndBoxWidget.labelLineEdits['lon'].setText('{:.7f}'.format(clipboardText['longitude']))
             self.setDirty()
-            print('latitude:', clipboardText['latitude'], 'longitude', clipboardText['longitude'], 'type ',
-                  type(clipboardText))
         except Exception as e:
-            print('failed',str(e),'\n',clipboardText)
+            print('Exception in pasteGeo:',str(e),'\n',clipboardText)
             pass
-    # jchen = 20180322 lineedit hit enter
-    def lineEditChanged(self,order):
-        self.setDirty()
+
+    def pasteAll(self):
+        clipboardText = QApplication.clipboard().text()
+        pasteAllName = self.sender().objectName()
+        bndBoxWidget = self.pasteAllsToBndWidgets[pasteAllName]
+        shape = self.bndWidgetsToShapes[bndBoxWidget]
         try:
-            count = 0
-            for shape in self.canvas.shapes:
-                xmin = int(self.imgXmlInfos[count].labelLineEdits['x'].text())
-                ymin = int(self.imgXmlInfos[count].labelLineEdits['y'].text())
-                width = int(self.imgXmlInfos[count].labelLineEdits['w'].text())
-                height = int(self.imgXmlInfos[count].labelLineEdits['h'].text())
-                if (1920,1080,1920,1080)>(xmin,ymin,xmin+width,ymin+height) >(0,0,0,0):
-                    shape.points[0] = QPointF(xmin,ymin)
-                    shape.points[1] = QPointF(xmin+width,ymin)
-                    shape.points[2] = QPointF(xmin+width,ymin+height)
-                    shape.points[3] = QPointF(xmin,ymin+height)
-                count += 1
-            self.canvas.loadShapes(self.canvas.shapes)
-        except:
-            print('Using editor to change shape failed')
+            clipboardText = json.loads(clipboardText)
+            self.objects[shape]['latitude'] = clipboardText['latitude']
+            self.objects[shape]['longitude'] = clipboardText['longitude']
+            # print('imgXmlInfos name:', self.imgXmlInfos[bndCount].objectName())
+            bndBoxWidget.labelLineEdits['lat'].setText('{:.7f}'.format(clipboardText['latitude']))
+            bndBoxWidget.labelLineEdits['lon'].setText('{:.7f}'.format(clipboardText['longitude']))
+            self.setDirty()
+        except Exception as e:
+            print('Exception in pasteAll:', str(e), '\n', clipboardText)
+            pass
+
+
+    # jchen = 20180322 lineedit hit enter
+    # def lineEditChanged(self,order):
+    #     self.setDirty()
+    #     try:
+    #         count = 0
+    #         for shape in self.canvas.shapes:
+    #             xmin = int(self.imgXmlInfos[count].labelLineEdits['x'].text())
+    #             ymin = int(self.imgXmlInfos[count].labelLineEdits['y'].text())
+    #             width = int(self.imgXmlInfos[count].labelLineEdits['w'].text())
+    #             height = int(self.imgXmlInfos[count].labelLineEdits['h'].text())
+    #             if (1920,1080,1920,1080)>(xmin,ymin,xmin+width,ymin+height) >(0,0,0,0):
+    #                 shape.points[0] = QPointF(xmin,ymin)
+    #                 shape.points[1] = QPointF(xmin+width,ymin)
+    #                 shape.points[2] = QPointF(xmin+width,ymin+height)
+    #                 shape.points[3] = QPointF(xmin,ymin+height)
+    #             count += 1
+    #         self.canvas.loadShapes(self.canvas.shapes)
+    #     except:
+    #         print('Using editor to change shape failed')
 
 
     def parseXML(self, filepath):
         assert filepath.endswith(XML_EXT), "Unsupport file format"
         parser = etree.XMLParser(encoding=ENCODE_METHOD)
         xmltree = ElementTree.parse(filepath, parser=parser).getroot()
-        filename = xmltree.find('filename').text
-        try:
-            verified = xmltree.attrib['verified']
-            if verified == 'yes':
-                self.verified = True
-        except KeyError:
-            self.verified = False
 
         signInfos = []
         for object_iter in xmltree.findall('object'):
             signInfo = {}
-            bndbox = object_iter.find("bndbox")
-            label = object_iter.find('name').text
-            # Add chris
-            xmin = int(bndbox.find('xmin').text)
-            ymin = int(bndbox.find('ymin').text)
-            xmax = int(bndbox.find('xmax').text)
-            ymax = int(bndbox.find('ymax').text)
-            signInfo['x'] = xmin
-            signInfo['y'] = ymin
-            signInfo['w'] = xmax - xmin
-            signInfo['h'] = ymax - ymin
+            try:
+                location = object_iter.find("location")
+
+                latitude = location.find('latitude').text
+                signInfo['latitude'] = latitude
+                longitude = location.find('longitude').text
+                signInfo['longitude'] = longitude
+                altitude = location.find('altitude').text
+                signInfo['altitude'] = altitude
+
+                superclass = object_iter.find('superclass').text
+                subclass = object_iter.find('subclass').text
+                SignMainGeneralOID = object_iter.find('SignMainGeneralOID').text
+                ID = object_iter.find('ID').text
+                LaneDirection = object_iter.find('LaneDirection').text
+                Marker = object_iter.find('Marker').text
+                City = object_iter.find('City').text
+                County = object_iter.find('County').text
+                District = object_iter.find('District').text
+                STREETNAME = object_iter.find('STREETNAME').text
+                MUTCDCode = object_iter.find('MUTCDCode').text
+                Retired = object_iter.find('Retired').text
+                Replaced = object_iter.find('Replaced').text
+                SignAge = object_iter.find('SignAge').text
+                TWN_TID = object_iter.find('TWN_TID').text
+                TWN_MI = object_iter.find('TWN_MI').text
+                QCFLAG = object_iter.find('QCFLAG').text
+                MIN_TWN_FMI = object_iter.find('MIN_TWN_FMI').text
+                MAX_TWN_TMI = object_iter.find('MAX_TWN_TMI').text
+                SR_SID = object_iter.find('SR_SID').text
+                OFFSET = object_iter.find('OFFSET').text
+                PublishDate = object_iter.find('PublishDate').text
+
+                signInfo['superclass'] = superclass
+                signInfo['subclass'] = subclass
+                signInfo['SignMainGeneralOID'] = SignMainGeneralOID
+                signInfo['ID'] = ID
+                signInfo['LaneDirection'] = LaneDirection
+                signInfo['Marker'] = Marker
+                signInfo['City'] = City
+                signInfo['County'] = County
+                signInfo['District'] = District
+                signInfo['STREETNAME'] = STREETNAME
+                signInfo['MUTCDCode'] = MUTCDCode
+                signInfo['Retired'] = Retired
+                signInfo['Replaced'] = Replaced
+                signInfo['SignAge'] = SignAge
+                signInfo['TWN_TID'] = TWN_TID
+                signInfo['TWN_MI'] = TWN_MI
+                signInfo['QCFLAG'] = QCFLAG
+                signInfo['MIN_TWN_FMI'] = MIN_TWN_FMI
+                signInfo['MAX_TWN_TMI'] = MAX_TWN_TMI
+                signInfo['SR_SID'] = SR_SID
+                signInfo['OFFSET'] = OFFSET
+                signInfo['PublishDate'] = PublishDate
+
+            except Exception as e:
+                print('Exception in parseXml:',str(e))
             signInfos.append(signInfo)
         return signInfos
 

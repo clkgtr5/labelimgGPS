@@ -24,6 +24,8 @@ class BoundingBoxWidget(QWidget):
         #self.numberOfBoundingBoxs.setMaximumWidth(50)
         self.pasteButton = QPushButton('Paste Geo')
         self.pasteButton.setMaximumWidth(90)
+        self.pasteAllButton =  QPushButton('Paste All')
+        self.pasteAllButton.setMaximumWidth(90)
 
         topLayout = QHBoxLayout()
         topLayout.setAlignment(Qt.AlignLeft)
@@ -35,7 +37,7 @@ class BoundingBoxWidget(QWidget):
         topLayout.addWidget(self.checkBox)
         #topLayout.addWidget(self.numberOfBoundingBoxs)
         topLayout.addWidget(self.pasteButton)
-
+        topLayout.addWidget(self.pasteAllButton)
         x = 0
         y = 1
         for itr in range(len(lineEditLabelsName)):
