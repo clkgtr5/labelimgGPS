@@ -1160,6 +1160,7 @@ class MainWindow(QMainWindow, WindowMixin):
                 print('signinfos:',len(signinfos),'shapes:',len(shapes))
                 for count in range(len(shapes)):
                     self.objects[shapes[count]] = signinfos[count]
+                    print(self.objects[shapes[count]])
                 self.loadImgInfo(shapes)
 
             self.setWindowTitle(__appname__ + ' ' + filePath)
@@ -1180,9 +1181,11 @@ class MainWindow(QMainWindow, WindowMixin):
         self.shapesToBndWidgets[shape] = bndWidget
         self.bndWidgetsToShapes[bndWidget] = shape
         try:
+            print('find object')
             object = self.objects[shape]
         except:
-            self.objects[shape] = None
+            self.objects[shape] = {}
+
         self.imgInfoLayout.addWidget(bndWidget.boundingBoxInfoLayoutContainer)
         #bndWidget.setObjectName("BoundingBoxWidget_{}".format(count))
         try:
@@ -1297,6 +1300,7 @@ class MainWindow(QMainWindow, WindowMixin):
         try:
             bndBoxWidget = self.pasteAllsToBndWidgets[pasteAllName]
             shape = self.bndWidgetsToShapes[bndBoxWidget]
+            print(shape)
         except:
             return
         try:
@@ -1365,62 +1369,125 @@ class MainWindow(QMainWindow, WindowMixin):
             signInfo = {}
             try:
                 location = object_iter.find("location")
-
                 latitude = location.find('latitude').text
                 signInfo['latitude'] = latitude
                 longitude = location.find('longitude').text
                 signInfo['longitude'] = longitude
                 altitude = location.find('altitude').text
                 signInfo['altitude'] = altitude
-
-                superclass = object_iter.find('superclass').text
-                subclass = object_iter.find('subclass').text
-                SignMainGeneralOID = object_iter.find('SignMainGeneralOID').text
-                ID = object_iter.find('ID').text
-                LaneDirection = object_iter.find('LaneDirection').text
-                Marker = object_iter.find('Marker').text
-                City = object_iter.find('City').text
-                County = object_iter.find('County').text
-                District = object_iter.find('District').text
-                STREETNAME = object_iter.find('STREETNAME').text
-                MUTCDCode = object_iter.find('MUTCDCode').text
-                Retired = object_iter.find('Retired').text
-                Replaced = object_iter.find('Replaced').text
-                SignAge = object_iter.find('SignAge').text
-                TWN_TID = object_iter.find('TWN_TID').text
-                TWN_MI = object_iter.find('TWN_MI').text
-                QCFLAG = object_iter.find('QCFLAG').text
-                MIN_TWN_FMI = object_iter.find('MIN_TWN_FMI').text
-                MAX_TWN_TMI = object_iter.find('MAX_TWN_TMI').text
-                SR_SID = object_iter.find('SR_SID').text
-                OFFSET = object_iter.find('OFFSET').text
-                PublishDate = object_iter.find('PublishDate').text
-
-                signInfo['superclass'] = superclass
-                signInfo['subclass'] = subclass
-                signInfo['SignMainGeneralOID'] = SignMainGeneralOID
-                signInfo['ID'] = ID
-                signInfo['LaneDirection'] = LaneDirection
-                signInfo['Marker'] = Marker
-                signInfo['City'] = City
-                signInfo['County'] = County
-                signInfo['District'] = District
-                signInfo['STREETNAME'] = STREETNAME
-                signInfo['MUTCDCode'] = MUTCDCode
-                signInfo['Retired'] = Retired
-                signInfo['Replaced'] = Replaced
-                signInfo['SignAge'] = SignAge
-                signInfo['TWN_TID'] = TWN_TID
-                signInfo['TWN_MI'] = TWN_MI
-                signInfo['QCFLAG'] = QCFLAG
-                signInfo['MIN_TWN_FMI'] = MIN_TWN_FMI
-                signInfo['MAX_TWN_TMI'] = MAX_TWN_TMI
-                signInfo['SR_SID'] = SR_SID
-                signInfo['OFFSET'] = OFFSET
-                signInfo['PublishDate'] = PublishDate
-
             except Exception as e:
                 print('Exception in parseXml:',str(e))
+
+            try:
+                superclass = object_iter.find('superclass').text
+                signInfo['superclass'] = superclass
+            except:
+                print('Exception in parseXml superclass')
+            try:
+                subclass = object_iter.find('subclass').text
+                signInfo['subclass'] = subclass
+            except:
+                print('Exception in parseXml subclass')
+            try:
+                SignMainGeneralOID = object_iter.find('SignMainGeneralOID').text
+                signInfo['SignMainGeneralOID'] = SignMainGeneralOID
+            except:
+                print('Exception in parseXml SignMainGeneralOID')
+            try:
+                ID = object_iter.find('ID').text
+                signInfo['ID'] = ID
+            except:
+                print('Exception in parseXml ID')
+            try:
+                LaneDirection = object_iter.find('LaneDirection').text
+                signInfo['LaneDirection'] = LaneDirection
+            except:
+                print('Exception in parseXml LaneDirection')
+            try:
+                Marker = object_iter.find('Marker').text
+                signInfo['Marker'] = Marker
+            except:
+                print('Exception in parseXml Marker')
+            try:
+                City = object_iter.find('City').text
+                signInfo['City'] = City
+            except:
+                print('Exception in parseXml City')
+            try:
+                County = object_iter.find('County').text
+                signInfo['County'] = County
+            except:
+                print('Exception in parseXml County')
+            try:
+                District = object_iter.find('District').text
+                signInfo['District'] = District
+            except:
+                print('Exception in parseXml District')
+            try:
+                STREETNAME = object_iter.find('STREETNAME').text
+                signInfo['STREETNAME'] = STREETNAME
+            except:
+                print('Exception in parseXml STREETNAME')
+            try:
+                MUTCDCode = object_iter.find('MUTCDCode').text
+                signInfo['MUTCDCode'] = MUTCDCode
+            except:
+                print('Exception in parseXml MUTCDCode')
+            try:
+                Retired = object_iter.find('Retired').text
+                signInfo['Retired'] = Retired
+            except:
+                print('Exception in parseXml Retired')
+            try:
+                Replaced = object_iter.find('Replaced').text
+                signInfo['Replaced'] = Replaced
+            except:
+                print('Exception in parseXml Replaced')
+            try:
+                SignAge = object_iter.find('SignAge').text
+                signInfo['SignAge'] = SignAge
+            except:
+                print('Exception in parseXml SignAge')
+            try:
+                TWN_TID = object_iter.find('TWN_TID').text
+                signInfo['TWN_TID'] = TWN_TID
+            except:
+                print('Exception in parseXml TWN_TID')
+            try:
+                TWN_MI = object_iter.find('TWN_MI').text
+                signInfo['TWN_MI'] = TWN_MI
+            except:
+                print('Exception in parseXml TWN_MI')
+            try:
+                QCFLAG = object_iter.find('QCFLAG').text
+                signInfo['QCFLAG'] = QCFLAG
+            except:
+                print('Exception in parseXml QCFLAG')
+            try:
+                MIN_TWN_FMI = object_iter.find('MIN_TWN_FMI').text
+                signInfo['MIN_TWN_FMI'] = MIN_TWN_FMI
+            except:
+                print('Exception in parseXml MIN_TWN_FMI')
+            try:
+                MAX_TWN_TMI = object_iter.find('MAX_TWN_TMI').text
+                signInfo['MAX_TWN_TMI'] = MAX_TWN_TMI
+            except:
+                print('Exception in parseXml MAX_TWN_TMI')
+            try:
+                SR_SID = object_iter.find('SR_SID').text
+                signInfo['SR_SID'] = SR_SID
+            except:
+                print('Exception in parseXml SR_SID')
+            try:
+                OFFSET = object_iter.find('OFFSET').text
+                signInfo['OFFSET'] = OFFSET
+            except:
+                print('Exception in parseXml OFFSET')
+            try:
+                PublishDate = object_iter.find('PublishDate').text
+                signInfo['PublishDate'] = PublishDate
+            except:
+                print('Exception in parseXml PublishDate')
             signInfos.append(signInfo)
         return signInfos
 
