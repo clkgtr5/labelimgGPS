@@ -1198,11 +1198,11 @@ class MainWindow(QMainWindow, WindowMixin):
 
             self.pasteGeosToBndWidgets[pasteGeoButton.objectName()] = bndWidget
 
-            # pasteAllbutton = bndWidget.pasteButton
-            # pasteAllbutton.setObjectName('pasteAll_' + str(self.bndNum))
-            # pasteAllbutton.clicked.connect(self.pasteAll)
-            #
-            # self.pasteAllsToBndWidgets[pasteGeoButton.objectName()] = bndWidget
+            pasteAllbutton = bndWidget.pasteAllButton
+            pasteAllbutton.setObjectName('pasteAll_' + str(self.bndNum))
+            pasteAllbutton.clicked.connect(self.pasteAll)
+
+            self.pasteAllsToBndWidgets[pasteAllbutton.objectName()] = bndWidget
 
 
             QComboBoxSub = bndWidget.dropDownBoxs['sub']
@@ -1274,8 +1274,11 @@ class MainWindow(QMainWindow, WindowMixin):
     def pasteGeo(self):
         clipboardText = QApplication.clipboard().text()
         pasteGeoName = self.sender().objectName()
-        bndBoxWidget = self.pasteGeosToBndWidgets[pasteGeoName]
-        shape = self.bndWidgetsToShapes[bndBoxWidget]
+        try:
+            bndBoxWidget = self.pasteGeosToBndWidgets[pasteGeoName]
+            shape = self.bndWidgetsToShapes[bndBoxWidget]
+        except:
+            return
         try:
             clipboardText = json.loads(clipboardText)
             self.objects[shape]['latitude'] = clipboardText['latitude']
@@ -1291,8 +1294,11 @@ class MainWindow(QMainWindow, WindowMixin):
     def pasteAll(self):
         clipboardText = QApplication.clipboard().text()
         pasteAllName = self.sender().objectName()
-        bndBoxWidget = self.pasteAllsToBndWidgets[pasteAllName]
-        shape = self.bndWidgetsToShapes[bndBoxWidget]
+        try:
+            bndBoxWidget = self.pasteAllsToBndWidgets[pasteAllName]
+            shape = self.bndWidgetsToShapes[bndBoxWidget]
+        except:
+            return
         try:
             clipboardText = json.loads(clipboardText)
             self.objects[shape]['latitude'] = clipboardText['latitude']
@@ -1300,6 +1306,28 @@ class MainWindow(QMainWindow, WindowMixin):
             # print('imgXmlInfos name:', self.imgXmlInfos[bndCount].objectName())
             bndBoxWidget.labelLineEdits['lat'].setText('{:.7f}'.format(clipboardText['latitude']))
             bndBoxWidget.labelLineEdits['lon'].setText('{:.7f}'.format(clipboardText['longitude']))
+            self.objects[shape]['subclass'] = clipboardText['MUTCDCode']
+            self.objects[shape]['SignMainGeneralOID'] = clipboardText['SignMainGeneralOID']
+            self.objects[shape]['ID'] = clipboardText['ID']
+            self.objects[shape]['LaneDirection'] = clipboardText['LaneDirection']
+            self.objects[shape]['Marker'] = clipboardText['Marker']
+            self.objects[shape]['City'] = clipboardText['City']
+            self.objects[shape]['County'] = clipboardText['County']
+            self.objects[shape]['District'] = clipboardText['District']
+            self.objects[shape]['STREETNAME'] = clipboardText['STREETNAME']
+            self.objects[shape]['MUTCDCode'] = clipboardText['MUTCDCode']
+            self.objects[shape]['Retired'] = clipboardText['Retired']
+            self.objects[shape]['Replaced'] = clipboardText['Replaced']
+            self.objects[shape]['SignAge'] = clipboardText['SignAge']
+            self.objects[shape]['TWN_TID'] = clipboardText['TWN_TID']
+            self.objects[shape]['TWN_MI'] = clipboardText['TWN_MI']
+            self.objects[shape]['QCFLAG'] = clipboardText['QCFLAG']
+            self.objects[shape]['MIN_TWN_FMI'] = clipboardText['MIN_TWN_FMI']
+            self.objects[shape]['MAX_TWN_TMI'] = clipboardText['MAX_TWN_TMI']
+            self.objects[shape]['SR_SID'] = clipboardText['SR_SID']
+            self.objects[shape]['OFFSET'] = clipboardText['OFFSET']
+            self.objects[shape]['PublishDate'] = clipboardText['PublishDate']
+            print(self.objects[shape])
             self.setDirty()
         except Exception as e:
             print('Exception in pasteAll:', str(e), '\n', clipboardText)
