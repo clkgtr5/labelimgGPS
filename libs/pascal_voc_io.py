@@ -80,57 +80,104 @@ class PascalVocWriter:
         bndbox['difficult'] = difficult
         try:
             bndbox['latitude'] = objectItems['latitude']
-            bndbox['longitude'] = objectItems['longitude']
-            bndbox['altitude'] = objectItems['altitude']
-            bndbox['superclass'] = objectItems['superclass']
-            bndbox['subclass'] = objectItems['subclass']
-            bndbox['SignMainGeneralOID'] = objectItems['SignMainGeneralOID']
-            bndbox['ID'] = objectItems['ID']
-            bndbox['LaneDirection'] = objectItems['LaneDirection']
-            bndbox['Marker'] = objectItems['Marker']
-            bndbox['City'] = objectItems['City']
-            bndbox['County'] = objectItems['County']
-            bndbox['District'] = objectItems['District']
-            bndbox['STREETNAME'] = objectItems['STREETNAME']
-            bndbox['MUTCDCode'] = objectItems['MUTCDCode']
-            bndbox['Retired'] = objectItems['Retired']
-            bndbox['Replaced'] = objectItems['Replaced']
-            bndbox['SignAge'] = objectItems['SignAge']
-            bndbox['TWN_TID'] = objectItems['TWN_TID']
-            bndbox['TWN_MI'] = objectItems['TWN_MI']
-            bndbox['QCFLAG'] = objectItems['QCFLAG']
-            bndbox['MIN_TWN_FMI'] = objectItems['MIN_TWN_FMI']
-            bndbox['MAX_TWN_TMI'] = objectItems['MAX_TWN_TMI']
-            bndbox['SR_SID'] = objectItems['SR_SID']
-            bndbox['OFFSET'] = objectItems['OFFSET']
-            bndbox['PublishDate'] = objectItems['PublishDate']
         except:
             bndbox['latitude'] = ""
+        try:
+            bndbox['longitude'] = objectItems['longitude']
+        except:
             bndbox['longitude'] = ""
+        try:
+            bndbox['altitude'] = objectItems['altitude']
+        except:
             bndbox['altitude'] = ""
+        try:
+            bndbox['superclass'] = objectItems['superclass']
+        except:
             bndbox['superclass'] = ""
+        try:
+            bndbox['subclass'] = objectItems['subclass']
+        except:
             bndbox['subclass'] = ""
+        try:
+            bndbox['SignMainGeneralOID'] = objectItems['SignMainGeneralOID']
+        except:
             bndbox['SignMainGeneralOID'] = ""
+        try:
+            bndbox['ID'] = objectItems['ID']
+        except:
             bndbox['ID'] = ""
+        try:
+            bndbox['LaneDirection'] = objectItems['LaneDirection']
+        except:
             bndbox['LaneDirection'] = ""
+        try:
+            bndbox['Marker'] = objectItems['Marker']
+        except:
             bndbox['Marker'] = ""
+        try:
+            bndbox['City'] = objectItems['City']
+        except:
             bndbox['City'] = ""
+        try:
+            bndbox['County'] = objectItems['County']
+        except:
             bndbox['County'] = ""
+        try:
+            bndbox['District'] = objectItems['District']
+        except:
             bndbox['District'] = ""
+        try:
+            bndbox['STREETNAME'] = objectItems['STREETNAME']
+        except:
             bndbox['STREETNAME'] = ""
+        try:
+            bndbox['MUTCDCode'] = objectItems['MUTCDCode']
+        except:
             bndbox['MUTCDCode'] = ""
+        try:
+            bndbox['Retired'] = objectItems['Retired']
+        except:
             bndbox['Retired'] = ""
+        try:
+            bndbox['Replaced'] = objectItems['Replaced']
+        except:
             bndbox['Replaced'] = ""
+        try:
+            bndbox['SignAge'] = objectItems['SignAge']
+        except:
             bndbox['SignAge'] = ""
+        try:
+            bndbox['TWN_TID'] = objectItems['TWN_TID']
+        except:
             bndbox['TWN_TID'] = ""
+        try:
+            bndbox['TWN_MI'] = objectItems['TWN_MI']
+        except:
             bndbox['TWN_MI'] = ""
+        try:
+            bndbox['QCFLAG'] = objectItems['QCFLAG']
+        except:
             bndbox['QCFLAG'] = ""
+        try:
+            bndbox['MIN_TWN_FMI'] = objectItems['MIN_TWN_FMI']
+        except:
             bndbox['MIN_TWN_FMI'] = ""
+        try:
+            bndbox['MAX_TWN_TMI'] = objectItems['MAX_TWN_TMI']
+        except:
             bndbox['MAX_TWN_TMI'] = ""
+        try:
+            bndbox['SR_SID'] = objectItems['SR_SID']
+        except:
             bndbox['SR_SID'] = ""
+        try:
+            bndbox['OFFSET'] = objectItems['OFFSET']
+        except:
             bndbox['OFFSET'] = ""
+        try:
+            bndbox['PublishDate'] = objectItems['PublishDate']
+        except:
             bndbox['PublishDate'] = ""
-            print('objectItems adding failed')
         self.boxlist.append(bndbox)
 
 

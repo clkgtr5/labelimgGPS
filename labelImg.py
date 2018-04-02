@@ -30,12 +30,13 @@ except ImportError:
 # Add External libs
 from PIL.ExifTags import TAGS, GPSTAGS
 from PIL import Image
-from arcgis.gis import GIS
-from arcgis.widgets import widgets
+#from arcgis.gis import GIS
+#from arcgis.widgets import widgets
 from xml.etree import ElementTree
 from xml.etree.ElementTree import Element, SubElement
 from lxml import etree
 import resources
+import sip
 
 # Add internal libs
 from libs.constants import *
@@ -139,8 +140,8 @@ class MainWindow(QMainWindow, WindowMixin):
         self.shapesToItems = {}
 
         # map the img info items (boundingBoxWidget class) to shape.
-        # self.bBoxWidgetsToShapes = {}
-        # self.shapesTobBoxWidget = {}
+        self.bndWidgetsToShapes = {}
+        self.shapesToBndWidgets = {}
         self.prevLabelText = ''
         # save xml object labels value
         self.objects = {}
@@ -153,8 +154,9 @@ class MainWindow(QMainWindow, WindowMixin):
 
         # Create a widget for using default label
         self.useDefaultLabelCheckbox = QCheckBox(u'Use default label')
-        self.useDefaultLabelCheckbox.setChecked(False)
+        self.useDefaultLabelCheckbox.setChecked(True)
         self.defaultLabelTextLine = QLineEdit()
+        self.defaultLabelTextLine.setText('SIGN')
         useDefaultLabelQHBoxLayout = QHBoxLayout()
         useDefaultLabelQHBoxLayout.addWidget(self.useDefaultLabelCheckbox)
         useDefaultLabelQHBoxLayout.addWidget(self.defaultLabelTextLine)
@@ -166,6 +168,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.diffcButton = QCheckBox(u'difficult')
         self.diffcButton.setChecked(False)
         self.diffcButton.stateChanged.connect(self.btnstate)
+        self.diffcButton.setVisible(False) #jchen add to save the space.
         self.editButton = QToolButton()
         self.editButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
@@ -601,6 +604,7 @@ class MainWindow(QMainWindow, WindowMixin):
     # jchen = 20180316 get clipboard info by focus on associatebutton
     def associateButtonState(self):
         self.clipBoardInfo.setText(QApplication.clipboard().text())
+        print('how many shapes',len(self.canvas.shapes))
         return
     # navigate_to_url function
 
@@ -834,6 +838,8 @@ class MainWindow(QMainWindow, WindowMixin):
         self.itemsToShapes[item] = shape
         self.shapesToItems[shape] = item
         self.labelList.addItem(item)
+        #jcehn = 20180401 add imginfo
+        self.addImgInfo(shape)
         for action in self.actions.onShapesPresent:
             action.setEnabled(True)
 
@@ -843,6 +849,7 @@ class MainWindow(QMainWindow, WindowMixin):
             return
         item = self.shapesToItems[shape]
         self.labelList.takeItem(self.labelList.row(item))
+        self.remImgInfo(shape)
         del self.shapesToItems[shape]
         del self.itemsToShapes[item]
 
@@ -912,12 +919,9 @@ class MainWindow(QMainWindow, WindowMixin):
             shape = self.itemsToShapes[item]
             #change checkbox status
             try:
-                numOfShape = 0
-                for s in range(len(self.canvas.shapes)):
-                    self.imgXmlInfos[s].checkBox.setChecked(False)
-                    if shape == self.canvas.shapes[s]:
-                        numOfShape = s
-                self.imgXmlInfos[numOfShape].checkBox.setChecked(True)
+                for s in  self.shapesToBndWidgets:
+                    self.shapesToBndWidgets[s].checkBox.setChecked(False)
+                self.shapesToBndWidgets[shape].checkBox.setChecked(True)
             except Exception as e:
                 print('Exception is :',str(e))
                 print('selected the boundingbox failed')
@@ -1142,9 +1146,8 @@ class MainWindow(QMainWindow, WindowMixin):
                         self.loadPascalXMLByFilename(xmlPath)
 
                 #Jchen = 20180316 add image info dock for bound box info
-                xmlPath = os.path.splitext(filePath)[0] + XML_EXT
-
-                self.loadImgInfo(xmlPath)
+                #xmlPath = os.path.splitext(filePath)[0] + XML_EXT
+                self.loadImgInfo(self.canvas.shapes)
 
             self.setWindowTitle(__appname__ + ' ' + filePath)
 
@@ -1154,14 +1157,59 @@ class MainWindow(QMainWindow, WindowMixin):
                 self.labelList.item(self.labelList.count()-1).setSelected(True)
 
             self.canvas.setFocus(True)
+
             return True
         return False
 
-    # jchen = 20180329 add
-    def loadImgInfo(self, xmlPath):
-        if os.path.isfile(xmlPath):
-            bndboxInfo = self.parseXML(xmlPath)
+    # jchen  = 20180401 add imginfo btnbox funxtions
+    def addImgInfo(self,shape):
+        bndWidget = BoundingBoxWidget()
+        self.shapesToBndWidgets[shape] = bndWidget
+        self.bndWidgetsToShapes[bndWidget] = shape
 
+        self.imgInfoLayout.addWidget(bndWidget.boundingBoxInfoLayoutContainer)
+        #bndWidget.setObjectName("BoundingBoxWidget_{}".format(count))
+        try:
+            with open('data/subclass.txt', 'r') as subclass:
+                dropitems = subclass.readlines()
+                for line in dropitems:
+                    line = line.strip()
+                    bndWidget.dropDownBoxs['sub'].addItem(line)
+
+            pasteGeoButton = bndWidget.pasteButton
+            pasteGeoButton.clicked.connect(self.pasteGeo)
+
+            QComboBoxSub = bndWidget.dropDownBoxs['sub']
+            QComboBoxSub.setEditable(True)
+            # create a completer with the strings in the column as model
+            allStrings = [QComboBoxSub.itemText(i) for i in range(QComboBoxSub.count())]
+
+            autoComplete = QCompleter(allStrings)
+            QComboBoxSub.setCompleter(autoComplete)
+
+        except:
+            print('load class failed')
+
+        # partial(self.lineEditChanged, count)
+        # Using image geoinfo as bounding box geoinfo.
+        try:
+            bndWidget.labelLineEdits['lat'].setText('{:.7f}'.format(self.geoInfo[0]))
+            bndWidget.labelLineEdits['lon'].setText('{:.7f}'.format(self.geoInfo[1]))
+        except:
+            print('No Geoinfo')
+        #bndWidget.numberOfBoundingBoxs.setText(str(count + 1))
+
+    def remImgInfo(self,shape):
+        if shape is None:
+            return
+        bndBoxWidget = self.shapesToBndWidgets[shape]
+        bndBoxWidget.boundingBoxInfoLayoutContainer.setVisible(False)
+        del self.shapesToBndWidgets[shape]
+        del self.bndWidgetsToShapes[bndBoxWidget]
+
+    # jchen = 20180329 add
+    def loadImgInfo(self, shapes):
+        if shapes:
             # add the imageinfomation to imginfodock
             self.imgInfoLayout = QVBoxLayout()
             self.imgInfoLayout.setContentsMargins(0, 0, 0, 0)
@@ -1178,74 +1226,24 @@ class MainWindow(QMainWindow, WindowMixin):
             self.imgInfoScrollArea = imgInfoScroll
             self.imgInfodock.setWidget(self.imgInfoScrollArea)
             # self.imgInfo.clear()
-            self.imgXmlInfos = []
+            #self.imgXmlInfos = []
 
             # add the boundingBoxWidget children
             count = 0
-            for info in bndboxInfo:
-                self.imgXmlInfos.append(BoundingBoxWidget())
-                self.imgInfoLayout.addWidget(self.imgXmlInfos[count].boundingBoxInfoLayoutContainer)
-                try:
-                    with open('data\superclass.txt', 'r') as superclass:
-                        dropitems = superclass.readlines()
-                        for line in dropitems:
-                            line = line.strip()
-                            self.imgXmlInfos[count].dropDownBoxs['sup'].addItem(line)
-                        #self.imgXmlInfos[count].dropDownBoxs['sup'].setObjectName()
-                    with open('data\subclass.txt', 'r') as superclass:
-                        dropitems = superclass.readlines()
-                        for line in dropitems:
-                            line = line.strip()
-                            self.imgXmlInfos[count].dropDownBoxs['sub'].addItem(line)
-
-                    self.imgXmlInfos[count].pasteButton.setObjectName('pushButton_'+str(count))
-                    self.imgXmlInfos[count].pasteButton.clicked.connect(self.pasteGeo)
-
-                    QComboBoxSub = self.imgXmlInfos[count].dropDownBoxs['sub']
-                    QComboBoxSub.setEditable(True)
-                    # create a completer with the strings in the column as model
-                    allStrings = [QComboBoxSub.itemText(i) for i in range(QComboBoxSub.count())]
-
-                    autoComplete = QCompleter(allStrings)
-                    QComboBoxSub.setCompleter(autoComplete)
-
-                except:
-                    print('load class failed')
-
-                for key in info:
-                    if key in self.imgXmlInfos[count].labelLineEdits:
-                        self.imgXmlInfos[count].labelLineEdits[key].setText(str(info[key]))
-                        self.imgXmlInfos[count].labelLineEdits[key].textChanged.connect(lambda: self.lineEditChanged(count))
-
-                # partial(self.lineEditChanged, count)
-                # Using image geoinfo as bounding box geoinfo.
-                try:
-                    if (len(self.geoInfo) == 3):
-                        self.imgXmlInfos[count].labelLineEdits['lat'].setText('{:.7f}'.format(self.geoInfo[0]))
-                        self.imgXmlInfos[count].labelLineEdits['lon'].setText('{:.7f}'.format(self.geoInfo[1]))
-                        self.imgXmlInfos[count].labelLineEdits['alt'].setText('{:.7f}'.format(self.geoInfo[2]))
-                    elif (len(self.geoInfo) == 2):
-                        self.imgXmlInfos[count].labelLineEdits['lat'].setText('{:.7f}'.format(self.geoInfo[0]))
-                        self.imgXmlInfos[count].labelLineEdits['lon'].setText('{:.7f}'.format(self.geoInfo[1]))
-                except:
-                    print('No Geoinfo')
-
-                self.imgXmlInfos[count].numberOfBoundingBoxs.setText(str(count + 1))
-                count += 1
-
+            for shape in shapes:
+                self.addImgInfo(shape)
+            self.bndNum = count # count is len()
         else:
             self.imgInfodock.setWidget(BoundingBoxWidget())
-
     def pasteGeo(self):
         clipboardText = QApplication.clipboard().text()
-        #print('self.sender().objectName()', self.sender().objectName())
-        bndCount = int(self.sender().objectName().split('_')[1])
-        #print('bndCount',bndCount)
+        print(self.parent())
         try:
             clipboardText = json.loads(clipboardText)
             self.objectItems['latitude'] = clipboardText['latitude']
             self.objectItems['longitude'] = clipboardText['longitude']
-            self.objects[bndCount] = self.objectItems
+            self.objects[shape] = self.objectItems
+           #print('imgXmlInfos name:', self.imgXmlInfos[bndCount].objectName())
             self.imgXmlInfos[bndCount].labelLineEdits['lat'].setText('{:.7f}'.format(clipboardText['latitude']))
             self.imgXmlInfos[bndCount].labelLineEdits['lon'].setText('{:.7f}'.format(clipboardText['longitude']))
             self.setDirty()

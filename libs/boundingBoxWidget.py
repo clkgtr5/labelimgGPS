@@ -12,16 +12,16 @@ class BoundingBoxWidget(QWidget):
     def __init__(self, parent = None):
         QWidget.__init__(self, parent = parent)
 
-        lineEditLabelsName = ['x', 'y', 'w', 'h', 'lat', 'lon', 'alt']
-        dropDownBoxLabelsname = ['sup', 'sub']
+        lineEditLabelsName = [ 'lat', 'lon']
+        dropDownBoxLabelsname = [ 'sub']
 
         self.labelLineEdits = {}
         self.dropDownBoxs = {}
 
         self.checkBox = QCheckBox()
         self.checkBox.setMaximumWidth(20)
-        self.numberOfBoundingBoxs = QLineEdit()
-        self.numberOfBoundingBoxs.setMaximumWidth(50)
+        #self.numberOfBoundingBoxs = QLineEdit()
+        #self.numberOfBoundingBoxs.setMaximumWidth(50)
         self.pasteButton = QPushButton('Paste Geo')
         self.pasteButton.setMaximumWidth(90)
 
@@ -33,7 +33,7 @@ class BoundingBoxWidget(QWidget):
         vLayout.setContentsMargins(0, 0, 0, 0)
 
         topLayout.addWidget(self.checkBox)
-        topLayout.addWidget(self.numberOfBoundingBoxs)
+        #topLayout.addWidget(self.numberOfBoundingBoxs)
         topLayout.addWidget(self.pasteButton)
 
         x = 0
