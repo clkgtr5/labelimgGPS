@@ -911,6 +911,11 @@ class MainWindow(QMainWindow, WindowMixin):
         self.itemsToShapes[item] = shape
         self.shapesToItems[shape] = item
         self.labelList.addItem(item)
+        try:
+            print(self.filePath)
+            print(self.canvas.selectedShape)
+        except:
+            print('file path is none')
         #jcehn = 20180401 add imginfo
         self.addImgInfo(shape)
         self.shapesToBndWidgets[shape].boundingBoxInfoLayoutContainer.setVisible(True)
@@ -1432,6 +1437,11 @@ class MainWindow(QMainWindow, WindowMixin):
         except Exception as e:
             print('Exception in pasteAll:', str(e), '\n', clipboardText)
             pass
+        try:
+            bndBoxWidget.dropDownBoxs['sub'].setCurrentText(self.objects[shape]['subclass'])
+        except:
+            print('subclass show failed')
+
 
     #jchen = 20180402 new
     def QComboBoxSubChanged(self):
