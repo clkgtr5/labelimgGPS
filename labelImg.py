@@ -6,6 +6,7 @@ import re
 import sys
 import subprocess
 import json
+import os
 
 from functools import partial
 from collections import defaultdict
@@ -30,11 +31,11 @@ except ImportError:
 # Add External libs
 from PIL.ExifTags import TAGS, GPSTAGS
 from PIL import Image
+from PIL import ImageQt
 from xml.etree import ElementTree
 from xml.etree.ElementTree import Element, SubElement
 from lxml import etree
 import resources
-import sip
 
 # Add internal libs
 from libs.constants import *
@@ -53,7 +54,7 @@ from libs.ustr import ustr
 from libs.version import __version__
 from libs.getExImgInfo import get_exif_data,_get_if_exist,_convert_to_degress,get_lat_lon
 from libs.boundingBoxWidget import BoundingBoxWidget
-
+from libs.thumbnailDialog import ThumbnailDialog
 __appname__ = 'labelImg'
 
 # Utility functions and classes.
@@ -101,8 +102,9 @@ class MainWindow(QMainWindow, WindowMixin):
     def __init__(self, defaultFilename=None, defaultPrefdefClassFile=None):
         super(MainWindow, self).__init__()
         self.setWindowTitle(__appname__)
-
-        self.defaultURL = "https://www.google.com/maps"
+        self.defaultLayout = None
+        self.defaultURL = 'https://vtrans.github.io/signs-data-viewer/?lon=-72.683117&lat=44.296882&zoomLevel=18'
+                          #"https://www.google.com/maps"
                           # "http://www.arcgis.com/home/webmap/viewer.html?url=http%3A%2F%2Fmaps.vtrans.vermont.gov" \
                           # "%2Farcgis%2Frest%2Fservices%2FAMP%2FSign_Symbols%2FFeatureServer&source=sd"
                           # "https://rawgit.com/VTrans/signs-data-viewer/master/index.html"
@@ -145,6 +147,9 @@ class MainWindow(QMainWindow, WindowMixin):
         self.QComboBoxSubsToBndWidgets = {}
 
         self.bndNum = 0
+        #refer cropped img
+        self.cropped_img = None
+        self.thumbnailDialog = None
 
         self.prevLabelText = ''
         # save xml object labels value
@@ -202,6 +207,11 @@ class MainWindow(QMainWindow, WindowMixin):
         listLayout.addWidget(associateContainer)
 
         self.clipBoardInfo.setText(QApplication.clipboard().text())
+
+        self.createThumbnail = QPushButton('create Thumbnail', self)
+        self.createThumbnail.setFixedWidth(160)
+        self.createThumbnail.clicked.connect(self.createThumbnailClicked)
+        listLayout.addWidget(self.createThumbnail)
 
         self.dock = QDockWidget(u'Box Labels', self)
         self.dock.setObjectName(u'Labels')
@@ -488,9 +498,13 @@ class MainWindow(QMainWindow, WindowMixin):
         self.singleClassMode.setChecked(settings.get(SETTING_SINGLE_CLASS, False))
         self.lastLabel = None
 
+        self.saveLayout = QAction("Save layout when close", self)
+        self.saveLayout.setCheckable(True)
+        self.saveLayout.setChecked(False)
+
         addActions(self.menus.file,
                    (open, opendir, changeSavedir, openAnnotation, self.menus.recentFiles, save, saveAs, close, resetAll, quit))
-        addActions(self.menus.help, (help, showInfo))
+        addActions(self.menus.help, (help, showInfo,self.saveLayout))
         addActions(self.menus.view, (
             self.autoSaving,
             self.singleClassMode,
@@ -591,20 +605,78 @@ class MainWindow(QMainWindow, WindowMixin):
             self.openDirDialog(dirpath=self.filePath)
 
     ## Support Functions ##
-    # jchen = 20180327 get refresh the imginfo
+    # jchen = 20180403 create thumbnail
 
-    def refreshImgInfo(self):
-        shapes = self.canvas.shapes
-        for i in range(len(shapes)):
-            shapes[i].points
+    def createThumbnailClicked(self):
+        self.thumbnailDialog = ThumbnailDialog(self)
+        thumbnail = QLabel()
+        #thumbnailDialog.ad
+        TBD = self.thumbnailDialog
+        with open('data/subclass.txt', 'r') as subclass:
+            dropitems = subclass.readlines()
+            for line in dropitems:
+                line = line.strip()
+                TBD.imgName.addItem(line)
 
-        pass
-        #self.imgXmlInfos
-        pass
+        TBD.imgName.setEditable(True)
+        allStrings = [TBD.imgName.itemText(i) for i in range(TBD.imgName.count())]
+        autoComplete = QCompleter(allStrings)
+        TBD.imgName.setCompleter(autoComplete)
 
+        TBD.show()
+
+        if (self.filePath):
+            # try:
+            #     q = QDialog()
+            #     q.exec_()
+            # except:
+            #     pass
+            try:
+                shape = self.canvas.selectedShape
+                points = shape.points
+                xmin = points[0].x()
+                ymin = points[0].y()
+                xmax = points[2].x()
+                ymax = points[2].y()
+            except:
+                print('get croodinate failed')
+            try:
+                bndBoxWidget = self.shapesToBndWidgets[shape]
+                TBD.imgName.setCurrentText(bndBoxWidget.dropDownBoxs['sub'].currentText())
+            except:
+                print('get subclass failed')
+            try:
+                img = Image.open("{}".format(self.filePath))
+
+                area = (xmin, ymin, xmax, ymax)
+                cropped_img = img.crop(area)
+                #self.cropped_img.save(os.getcwd() + '/icons/thumbnails/R1-2.png', 'PNG')
+            except:
+                print('load image failed')
+            try:
+                image1 = ImageQt.ImageQt(cropped_img)
+                image2 = QImage(image1)
+                pixmap = QPixmap.fromImage(image2)
+                TBD.imgThumbnail.setPixmap(pixmap)
+            except:
+                print('load img to label failed')
+
+            # try:
+            #     print(TBD.isSaved)
+            #     if TBD.isSaved:
+            #         subclassText = bndBoxWidget.dropDownBoxs['sub'].currentText()
+            #         try:
+            #             pixmap = QPixmap('icons/thumbnails/{}.png'.format(subclassText))
+            #             pixmap.scaled(64, 64, Qt.KeepAspectRatio)
+            #             bndBoxWidget.thumbnail.setPixmap(pixmap)
+            #         except:
+            #             bndBoxWidget.thumbnail.setText('No thumbnail')
+            # except:
+            #     print('change thumbnail failed')
     # jchen = 20180316 get clipboard info by focus on associatebutton
     def associateButtonState(self):
         self.clipBoardInfo.setText(QApplication.clipboard().text())
+
         return
     # navigate_to_url function
 
@@ -712,6 +784,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
     ## Callbacks ##
     def showTutorialDialog(self):
+        return
         subprocess.Popen([self.screencastViewer, self.screencast])
 
     def showInfoDialog(self):
@@ -730,7 +803,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.actions.editMode.setEnabled(not drawing)
         if not drawing and self.beginner():
             # Cancel creation.
-            print('Cancel creation.')
+            #print('Cancel creation.')
             self.canvas.setEditing(True)
             self.canvas.restoreCursor()
             self.actions.create.setEnabled(True)
@@ -840,6 +913,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.labelList.addItem(item)
         #jcehn = 20180401 add imginfo
         self.addImgInfo(shape)
+        self.shapesToBndWidgets[shape].boundingBoxInfoLayoutContainer.setVisible(True)
         for action in self.actions.onShapesPresent:
             action.setEnabled(True)
 
@@ -972,7 +1046,6 @@ class MainWindow(QMainWindow, WindowMixin):
             generate_color = generateColorByText(text)
             shape = self.canvas.setLastLabel(text, generate_color, generate_color)
             self.addLabel(shape)
-
             if self.beginner():  # Switch to edit mode.
                 self.canvas.setEditing(True)
                 self.actions.create.setEnabled(True)
@@ -1070,6 +1143,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def loadFile(self, filePath=None,updateWebbrowser = True):
         """Load the specified file, or the last opened file if None."""
+
         self.resetState()
         self.canvas.setEnabled(False)
         if filePath is None:
@@ -1113,8 +1187,9 @@ class MainWindow(QMainWindow, WindowMixin):
             try:
                 self.geoInfo = get_lat_lon(get_exif_data(Image.open(unicodeFilePath)))  #self.geoInfo  = (lat,lon) or (lat,lon, alt)
                 if updateWebbrowser:
-                    googleQueryUrl = 'https://www.google.com/maps/search/?api=1&query='
-                    imgUrl = googleQueryUrl+'{:.7f}'.format(self.geoInfo[0])+','+'{:.7f}'.format(self.geoInfo[1])
+                    #googleQueryUrl = 'https://www.google.com/maps/search/?api=1&query='
+                    vtranMapUrl = 'https://vtrans.github.io/signs-data-viewer/?lon=-72.683117&lat=44.296882&zoomLevel=18'
+                    imgUrl = 'https://vtrans.github.io/signs-data-viewer/?lon={:.6f}&lat={:.6f}&zoomLevel=18'.format(self.geoInfo[1],self.geoInfo[0])
                     self.webViewer.load(QUrl(imgUrl))
                     self.urlbar.setText(imgUrl)
                 #print(imgUrl)
@@ -1157,11 +1232,15 @@ class MainWindow(QMainWindow, WindowMixin):
                 xmlPath = os.path.splitext(filePath)[0] + XML_EXT
                 shapes = self.canvas.shapes
 
-                signinfos = self.parseXML(xmlPath)
-                print('signinfos:',len(signinfos),'shapes:',len(shapes))
-                for count in range(len(shapes)):
-                    self.objects[shapes[count]] = signinfos[count]
-                    print(self.objects[shapes[count]])
+                try:
+                    signinfos = self.parseXML(xmlPath)
+                    #print('signinfos:',len(signinfos),'shapes:',len(shapes))
+                    for count in range(len(shapes)):
+                        self.objects[shapes[count]] = signinfos[count]
+                except:
+                    print('load xml file to objects failed')
+                    #print(self.objects[shapes[count]])
+
                 self.loadImgInfo(shapes)
 
             self.setWindowTitle(__appname__ + ' ' + filePath)
@@ -1182,12 +1261,13 @@ class MainWindow(QMainWindow, WindowMixin):
         self.shapesToBndWidgets[shape] = bndWidget
         self.bndWidgetsToShapes[bndWidget] = shape
         try:
-            print('find object')
+            #print('find object')
             object = self.objects[shape]
         except:
             self.objects[shape] = {}
 
         self.imgInfoLayout.addWidget(bndWidget.boundingBoxInfoLayoutContainer)
+
         #bndWidget.setObjectName("BoundingBoxWidget_{}".format(count))
         try:
             with open('data/subclass.txt', 'r') as subclass:
@@ -1208,11 +1288,13 @@ class MainWindow(QMainWindow, WindowMixin):
 
             self.pasteAllsToBndWidgets[pasteAllbutton.objectName()] = bndWidget
 
-
             QComboBoxSub = bndWidget.dropDownBoxs['sub']
             QComboBoxSub.setObjectName('QComboBoxSub_' + str(self.bndNum))
+            try:
+                QComboBoxSub.setCurrentText(self.objects[shape]['subclass'])
+            except:
+                pass
             self.QComboBoxSubsToBndWidgets[QComboBoxSub.objectName()] = bndWidget
-
 
             # create a completer with the strings in the column as model
             QComboBoxSub.setEditable(True)
@@ -1222,6 +1304,15 @@ class MainWindow(QMainWindow, WindowMixin):
 
             #add event function
             QComboBoxSub.currentTextChanged.connect(self.QComboBoxSubChanged)
+
+            thumbnail = bndWidget.thumbnail
+
+            try:
+                pixmap = QPixmap('icons/thumbnails/{}.png'.format(self.objects[shape]['subclass']))
+                pixmap.scaled(64,64, Qt.KeepAspectRatio)
+                thumbnail.setPixmap(pixmap)
+            except:
+                thumbnail.setText('No thumbnail')
 
             self.bndNum += 1
         except Exception as e:
@@ -1233,13 +1324,13 @@ class MainWindow(QMainWindow, WindowMixin):
         try:
             latText = self.objects[shape]['latitude']
             longText =  self.objects[shape]['longitude']
-
             bndWidget.labelLineEdits['lat'].setText('{:.7f}'.format(float(latText)))
             bndWidget.labelLineEdits['lon'].setText('{:.7f}'.format(float(longText)))
-
-        except:
+        except Exception as e:
+            print('exception in loading geo info:',str(e))
             bndWidget.labelLineEdits['lat'].setText('{:.7f}'.format(self.geoInfo[0]))
             bndWidget.labelLineEdits['lon'].setText('{:.7f}'.format(self.geoInfo[1]))
+        except:
             print('No Geoinfo')
         #bndWidget.numberOfBoundingBoxs.setText(str(count + 1))
 
@@ -1255,32 +1346,29 @@ class MainWindow(QMainWindow, WindowMixin):
 
     # jchen = 20180329 add
     def loadImgInfo(self, shapes):
-        if shapes:
-            # add the imageinfomation to imginfodock
-            self.imgInfoLayout = QVBoxLayout()
-            self.imgInfoLayout.setContentsMargins(0, 0, 0, 0)
-            imgInfoListContainer = QWidget()
-            imgInfoListContainer.setLayout(self.imgInfoLayout)
+        # add the imageinfomation to imginfodock
+        self.imgInfoLayout = QVBoxLayout()
+        self.imgInfoLayout.setContentsMargins(0, 0, 0, 0)
+        imgInfoListContainer = QWidget()
+        imgInfoListContainer.setLayout(self.imgInfoLayout)
 
-            # jchen 0328 add Scroll function
-            imgInfoScroll = QScrollArea()
-            imgInfoScroll.setWidget(imgInfoListContainer)
-            imgInfoScroll.setWidgetResizable(True)
-            self.imgInfoScrollBars = {
-                Qt.Vertical: imgInfoScroll.verticalScrollBar()
-            }
-            self.imgInfoScrollArea = imgInfoScroll
-            self.imgInfodock.setWidget(self.imgInfoScrollArea)
-            # self.imgInfo.clear()
-            #self.imgXmlInfos = []
+        # jchen 0328 add Scroll function
+        imgInfoScroll = QScrollArea()
+        imgInfoScroll.setWidget(imgInfoListContainer)
+        imgInfoScroll.setWidgetResizable(True)
+        self.imgInfoScrollBars = {
+            Qt.Vertical: imgInfoScroll.verticalScrollBar()
+        }
+        self.imgInfoScrollArea = imgInfoScroll
+        self.imgInfodock.setWidget(self.imgInfoScrollArea)
+        # self.imgInfo.clear()
+        #self.imgXmlInfos = []
 
-            # add the boundingBoxWidget children
-            self.bndNum = 0 # count is len()
-            for shape in shapes:
-                self.addImgInfo(shape)
+        # add the boundingBoxWidget children
+        self.bndNum = 0 # count is len()
+        for shape in shapes:
+            self.addImgInfo(shape)
 
-        else:
-            self.imgInfodock.setWidget(BoundingBoxWidget())
 
     def pasteGeo(self):
         clipboardText = QApplication.clipboard().text()
@@ -1308,7 +1396,7 @@ class MainWindow(QMainWindow, WindowMixin):
         try:
             bndBoxWidget = self.pasteAllsToBndWidgets[pasteAllName]
             shape = self.bndWidgetsToShapes[bndBoxWidget]
-            print(shape)
+            #print(shape)
         except:
             return
         try:
@@ -1339,7 +1427,7 @@ class MainWindow(QMainWindow, WindowMixin):
             self.objects[shape]['SR_SID'] = clipboardText['SR_SID']
             self.objects[shape]['OFFSET'] = clipboardText['OFFSET']
             self.objects[shape]['PublishDate'] = clipboardText['PublishDate']
-            print(self.objects[shape])
+            #print(self.objects[shape])
             self.setDirty()
         except Exception as e:
             print('Exception in pasteAll:', str(e), '\n', clipboardText)
@@ -1348,7 +1436,7 @@ class MainWindow(QMainWindow, WindowMixin):
     #jchen = 20180402 new
     def QComboBoxSubChanged(self):
         QComboBoxSubName = self.sender().objectName()
-        print('in QComboBoxSubChanged')
+        #print('in QComboBoxSubChanged')
         try:
             bndBoxWidget = self.QComboBoxSubsToBndWidgets[QComboBoxSubName]
             shape = self.bndWidgetsToShapes[bndBoxWidget]
@@ -1357,6 +1445,12 @@ class MainWindow(QMainWindow, WindowMixin):
         try:
             subclassText = bndBoxWidget.dropDownBoxs['sub'].currentText()
             self.objects[shape]['subclass'] = subclassText
+            try:
+                pixmap = QPixmap('icons/thumbnails/{}.png'.format(self.objects[shape]['subclass']))
+                pixmap.scaled(64, 64, Qt.KeepAspectRatio)
+                bndBoxWidget.thumbnail.setPixmap(pixmap)
+            except:
+                bndBoxWidget.thumbnail.setText('No thumbnail')
             self.setDirty()
         except Exception as e:
             print('Exception in QComboBoxSubChanged:',str(e))
@@ -1556,7 +1650,10 @@ class MainWindow(QMainWindow, WindowMixin):
 
         settings[SETTING_AUTO_SAVE] = self.autoSaving.isChecked()
         settings[SETTING_SINGLE_CLASS] = self.singleClassMode.isChecked()
-        settings.save()
+        #save setting
+        print(self.saveLayout.isChecked())
+        if self.saveLayout.isChecked():
+            settings.save()
     ## User Dialogs ##
 
     def loadRecent(self, filename):

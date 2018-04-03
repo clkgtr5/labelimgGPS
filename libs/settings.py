@@ -8,6 +8,7 @@ class Settings(object):
         home = os.getcwd()#os.path.expanduser("~")
         self.data = {}
         self.path = os.path.join(home, '.labelImgSettings.pkl')
+        self.defaultPath =  os.path.join(home, '.defaultLayout.pkl')
         #print('setting path:',os.getcwd())
     def __setitem__(self, key, value):
         self.data[key] = value
@@ -28,6 +29,13 @@ class Settings(object):
         return False
 
     def load(self):
+        if os.path.exists(self.path):
+            with open(self.path, 'rb') as f:
+                self.data = pickle.load(f)
+                return True
+        return False
+
+    def loadDefault(self):
         if os.path.exists(self.path):
             with open(self.path, 'rb') as f:
                 self.data = pickle.load(f)

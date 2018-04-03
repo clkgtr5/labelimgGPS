@@ -221,6 +221,8 @@ class PascalVocWriter:
                 SignMainGeneralOID.text = str(each_object['SignMainGeneralOID'])
                 ID = SubElement(object_item, 'ID')
                 ID.text = str(each_object['ID'])
+                LaneDirection = SubElement(object_item, 'LaneDirection')
+                LaneDirection.text = str(each_object['LaneDirection'])
                 Marker = SubElement(object_item, 'Marker')
                 Marker.text = str(each_object['Marker'])
                 City = SubElement(object_item, 'City')
