@@ -145,7 +145,8 @@ class MainWindow(QMainWindow, WindowMixin):
         self.pasteGeosToBndWidgets = {}
         self.pasteAllsToBndWidgets = {}
         self.QComboBoxSubsToBndWidgets = {}
-        self.checkBoxesToBndWidgets = {}
+        #self.checkBoxesToBndWidgets = {}
+        self.gotoGeoToBndWidgets = {}
 
         self.bndNum = 0
         #refer cropped img
@@ -611,8 +612,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def createThumbnailClicked(self):
         self.thumbnailDialog = ThumbnailDialog(self)
-        thumbnail = QLabel()
-        #thumbnailDialog.ad
+
         TBD = self.thumbnailDialog
         with open('data/subclass.txt', 'r') as subclass:
             dropitems = subclass.readlines()
@@ -628,11 +628,6 @@ class MainWindow(QMainWindow, WindowMixin):
         TBD.show()
 
         if (self.filePath):
-            # try:
-            #     q = QDialog()
-            #     q.exec_()
-            # except:
-            #     pass
             try:
                 shape = self.canvas.selectedShape
                 points = shape.points
@@ -653,13 +648,16 @@ class MainWindow(QMainWindow, WindowMixin):
 
                 area = (xmin, ymin, xmax, ymax)
                 cropped_img = img.crop(area)
-                #self.cropped_img.save(os.getcwd() + '/icons/thumbnails/R1-2.png', 'PNG')
+                #cropped_img.save(os.getcwd() + '/icons/thumbnails/{}.png'.format(bndBoxWidget.dropDownBoxs['sub'].currentText()), 'PNG')
+                TBD.imgData = cropped_img
             except:
                 print('load image failed')
             try:
+                cropped_img.resize((64,64), Image.ANTIALIAS)
                 image1 = ImageQt.ImageQt(cropped_img)
                 image2 = QImage(image1)
                 pixmap = QPixmap.fromImage(image2)
+                pixmap.scaled(64,64)
                 TBD.imgThumbnail.setPixmap(pixmap)
             except:
                 print('load img to label failed')
@@ -1014,6 +1012,7 @@ class MainWindow(QMainWindow, WindowMixin):
             shape = self.itemsToShapes[item]
             #change checkbox status
             self.changeCheckBoxStatus(shape)
+            self.loadThumbnail(shape)
             # Add Chris
             self.diffcButton.setChecked(shape.difficult)
 
@@ -1032,7 +1031,6 @@ class MainWindow(QMainWindow, WindowMixin):
             p.setColor(self.shapesToBndWidgets[shape].boundingBoxInfoLayoutContainer.backgroundRole(), Qt.darkGray)
             self.shapesToBndWidgets[shape].boundingBoxInfoLayoutContainer.setPalette(p)
 
-            self.loadThumbnail(self.canvas.selectedShape)
         except Exception as e:
             print('Exception is :', str(e))
             print('selected the boundingbox failed')
@@ -1345,11 +1343,13 @@ class MainWindow(QMainWindow, WindowMixin):
             self.thumbnail.setVisible(True)
 
             #add the checkbox checkfunntion
-            checkBox = bndWidget.checkBox
-            checkBox.setObjectName('checkBox_' + str(self.bndNum))
-            self.checkBoxesToBndWidgets[checkBox.objectName()] = bndWidget
+            # checkBox = bndWidget.checkBox
+            # checkBox.setObjectName('checkBox_' + str(self.bndNum))
+            # self.checkBoxesToBndWidgets[checkBox.objectName()] = bndWidget
+            #
+            # checkBox.stateChanged.connect(self.checkBoxStateChanged)
 
-            checkBox.stateChanged.connect(self.checkBoxStateChanged)
+            #add the goto geo function
 
             self.bndNum += 1
         except Exception as e:
@@ -1499,9 +1499,10 @@ class MainWindow(QMainWindow, WindowMixin):
         try:
             subclassText = bndBoxWidget.dropDownBoxs['sub'].currentText()
             self.objects[shape]['subclass'] = subclassText
-
-            self.loadThumbnail(shape)
-            self.setDirty()
+            #only the seleted bounding box can show the thumbnail
+            if shape == self.canvas.selectedShape:
+                self.loadThumbnail(shape)
+                self.setDirty()
         except Exception as e:
             print('Exception in QComboBoxSubChanged:',str(e))
 
