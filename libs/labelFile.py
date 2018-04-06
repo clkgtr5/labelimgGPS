@@ -29,7 +29,7 @@ class LabelFile(object):
         self.verified = False
 
     def savePascalVocFormat(self, filename, shapes, imagePath, imageData,
-                            lineColor=None, fillColor=None, databaseSrc=None, objects = None):
+                            lineColor=None, fillColor=None, databaseSrc=None, objects = None, geoInfo = None):
         """
         :param filename:
         :param shapes:
@@ -54,6 +54,12 @@ class LabelFile(object):
         writer = PascalVocWriter(imgFolderName, imgFileName,
                                  imageShape, localImgPath=imagePath)
         writer.verified = self.verified
+        try:
+            writer.latitude = geoInfo[0]
+            writer.longitude = geoInfo[1]
+            writer.altiude = geoInfo[2]
+        except:
+            print("no geoinfo in labelfile savePascalFormat")
         count = 0
         for shape in shapes:
             points = shape['points']

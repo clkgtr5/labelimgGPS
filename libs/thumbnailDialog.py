@@ -13,16 +13,19 @@ BB = QDialogButtonBox
 class ThumbnailDialog(QDialog):
     def __init__(self, parent = None):
         super(ThumbnailDialog, self).__init__(parent)
-        self.resize(300,350)
+        self.setBaseSize(600,650)
         self.fileName = QLabel(u'Save File Name:')
         self.fileName.setFixedHeight(20)
         self.fileName.setFixedWidth(200)
         self.fileName.setAlignment(Qt.AlignTop)
         self.imgName = QComboBox()
-        self.imgThumbnail = QLabel()
 
-        self.imgThumbnail.setFixedHeight(160)
-        self.imgThumbnail.setFixedWidth(160)
+        self.imgThumbnail = QLabel()
+        self.imgThumbnail.setMinimumWidth(180)
+        self.imgThumbnail.setMinimumHeight(180)
+        self.imgThumbnail.setMaximumWidth(240)
+        self.imgThumbnail.setMaximumHeight(240)
+
         self.imgThumbnail.setScaledContents(True)
         self.imgThumbnail.setAlignment(Qt.AlignCenter)
 

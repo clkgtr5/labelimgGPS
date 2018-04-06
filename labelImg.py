@@ -145,6 +145,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.pasteGeosToBndWidgets = {}
         self.pasteAllsToBndWidgets = {}
         self.QComboBoxSubsToBndWidgets = {}
+        self.checkBoxesToBndWidgets = {}
 
         self.bndNum = 0
         #refer cropped img
@@ -195,23 +196,18 @@ class MainWindow(QMainWindow, WindowMixin):
         listLayout.addWidget(self.labelList)
         
         # Jchen27 = 03152018 add associate button
-        self.associateButton = QPushButton('associate', self)
-        self.associateButton.setToolTip('Get clipBoardInfo by stop')
-        self.associateButton.clicked.connect(self.associateButtonState)
-        self.clipBoardInfo = QLineEdit()
-        associateQHBoxLayout = QHBoxLayout()
-        associateQHBoxLayout.addWidget(self.associateButton)
-        associateQHBoxLayout.addWidget(self.clipBoardInfo)
-        associateContainer = QWidget()
-        associateContainer.setLayout(associateQHBoxLayout)
-        listLayout.addWidget(associateContainer)
+        # self.associateButton = QPushButton('associate', self)
+        # self.associateButton.setToolTip('Get clipBoardInfo by stop')
+        # self.associateButton.clicked.connect(self.associateButtonState)
+        # self.clipBoardInfo = QLineEdit()
+        # associateQHBoxLayout = QHBoxLayout()
+        # associateQHBoxLayout.addWidget(self.associateButton)
+        # associateQHBoxLayout.addWidget(self.clipBoardInfo)
+        # associateContainer = QWidget()
+        # associateContainer.setLayout(associateQHBoxLayout)
+        # listLayout.addWidget(associateContainer)
 
-        self.clipBoardInfo.setText(QApplication.clipboard().text())
-
-        self.createThumbnail = QPushButton('create Thumbnail', self)
-        self.createThumbnail.setFixedWidth(160)
-        self.createThumbnail.clicked.connect(self.createThumbnailClicked)
-        listLayout.addWidget(self.createThumbnail)
+        # self.clipBoardInfo.setText(QApplication.clipboard().text())
 
         self.dock = QDockWidget(u'Box Labels', self)
         self.dock.setObjectName(u'Labels')
@@ -321,17 +317,19 @@ class MainWindow(QMainWindow, WindowMixin):
         self.dock.setFeatures(self.dock.features() ^ self.dockFeatures)
 
         # Jchen = 20180311 add a dock to show the image infomation
-        self.imgInfoLayout = QVBoxLayout()
-        self.imgInfoLayout.setContentsMargins(0, 0, 0, 0)
-        #self.imgInfoLayout.addWidget(self.imgInfo)
 
-        imgInfoListContainer = QWidget()
-        imgInfoListContainer.setLayout(self.imgInfoLayout)
+        self.createThumbnail = QPushButton('create ThumbN', self)
+        self.createThumbnail.setFixedWidth(120)
+        self.createThumbnail.clicked.connect(self.createThumbnailClicked)
 
+        self.thumbnail = QLabel()
+        self.thumbnail.setMinimumWidth(100)
+        self.thumbnail.setMinimumHeight(100)
+        self.thumbnail.setScaledContents(True)
         # Connect to itemChanged to detect checkbox changes.
         self.imgInfodock = QDockWidget(u'image info', self)
         self.imgInfodock.setObjectName(u'img  infos')
-        self.imgInfodock.setWidget(imgInfoListContainer)
+
 
         self.addDockWidget(Qt.RightDockWidgetArea, self.imgInfodock)
         self.imgInfodock.setFeatures(QDockWidget.DockWidgetFloatable)
@@ -604,6 +602,10 @@ class MainWindow(QMainWindow, WindowMixin):
         if self.filePath and os.path.isdir(self.filePath):
             self.openDirDialog(dirpath=self.filePath)
 
+        self.setFocusPolicy(Qt.StrongFocus)
+
+    ##focus event.
+
     ## Support Functions ##
     # jchen = 20180403 create thumbnail
 
@@ -644,6 +646,7 @@ class MainWindow(QMainWindow, WindowMixin):
                 bndBoxWidget = self.shapesToBndWidgets[shape]
                 TBD.imgName.setCurrentText(bndBoxWidget.dropDownBoxs['sub'].currentText())
             except:
+                TBD.imgThumbnail.setText('No bounding \n box selected')
                 print('get subclass failed')
             try:
                 img = Image.open("{}".format(self.filePath))
@@ -676,7 +679,6 @@ class MainWindow(QMainWindow, WindowMixin):
     # jchen = 20180316 get clipboard info by focus on associatebutton
     def associateButtonState(self):
         self.clipBoardInfo.setText(QApplication.clipboard().text())
-
         return
     # navigate_to_url function
 
@@ -912,8 +914,9 @@ class MainWindow(QMainWindow, WindowMixin):
         self.shapesToItems[shape] = item
         self.labelList.addItem(item)
         try:
-            print(self.filePath)
-            print(self.canvas.selectedShape)
+            pass
+            #print(self.filePath)
+            #print(self.canvas.selectedShape)
         except:
             print('file path is none')
         #jcehn = 20180401 add imginfo
@@ -983,7 +986,13 @@ class MainWindow(QMainWindow, WindowMixin):
             if self.usingPascalVocFormat is True:
                 print ('Img: ' + self.filePath + ' -> Its xml: ' + annotationFilePath)
                 self.labelFile.savePascalVocFormat(annotationFilePath, shapes, self.filePath, self.imageData,
-                                                   self.lineColor.getRgb(), self.fillColor.getRgb(),objects = obejcts)
+                                                   self.lineColor.getRgb(), self.fillColor.getRgb(),objects = obejcts, geoInfo = self.geoInfo)
+                # delete xml file when there is no bounding box in the image
+                try:
+                    if self.noShapes():
+                        os.remove(annotationFilePath)
+                except:
+                    print('no xml file to delete')
             else:
                 self.labelFile.save(annotationFilePath, shapes, self.filePath, self.imageData,
                                     self.lineColor.getRgb(), self.fillColor.getRgb())
@@ -1004,15 +1013,29 @@ class MainWindow(QMainWindow, WindowMixin):
             self.canvas.selectShape(self.itemsToShapes[item])
             shape = self.itemsToShapes[item]
             #change checkbox status
-            try:
-                for s in  self.shapesToBndWidgets:
-                    self.shapesToBndWidgets[s].checkBox.setChecked(False)
-                self.shapesToBndWidgets[shape].checkBox.setChecked(True)
-            except Exception as e:
-                print('Exception is :',str(e))
-                print('selected the boundingbox failed')
+            self.changeCheckBoxStatus(shape)
             # Add Chris
             self.diffcButton.setChecked(shape.difficult)
+
+    def changeCheckBoxStatus(self,shape):
+        try:
+            for s in self.shapesToBndWidgets:
+                self.shapesToBndWidgets[s].checkBox.setCheckable(False)
+                self.shapesToBndWidgets[s].checkBox.setChecked(False)
+                p = self.shapesToBndWidgets[s].boundingBoxInfoLayoutContainer.palette()
+                p.setColor(self.shapesToBndWidgets[s].boundingBoxInfoLayoutContainer.backgroundRole(), Qt.white)
+                self.shapesToBndWidgets[s].boundingBoxInfoLayoutContainer.setPalette(p)
+
+            self.shapesToBndWidgets[shape].checkBox.setCheckable(True)
+            self.shapesToBndWidgets[shape].checkBox.setChecked(True)
+            p = self.shapesToBndWidgets[shape].boundingBoxInfoLayoutContainer.palette()
+            p.setColor(self.shapesToBndWidgets[shape].boundingBoxInfoLayoutContainer.backgroundRole(), Qt.darkGray)
+            self.shapesToBndWidgets[shape].boundingBoxInfoLayoutContainer.setPalette(p)
+
+            self.loadThumbnail(self.canvas.selectedShape)
+        except Exception as e:
+            print('Exception is :', str(e))
+            print('selected the boundingbox failed')
 
     def labelItemChanged(self, item):
         shape = self.itemsToShapes[item]
@@ -1310,14 +1333,23 @@ class MainWindow(QMainWindow, WindowMixin):
             #add event function
             QComboBoxSub.currentTextChanged.connect(self.QComboBoxSubChanged)
 
-            thumbnail = bndWidget.thumbnail
-
+            #show the thumbnail
+            thumbnail = self.thumbnail
             try:
                 pixmap = QPixmap('icons/thumbnails/{}.png'.format(self.objects[shape]['subclass']))
                 pixmap.scaled(64,64, Qt.KeepAspectRatio)
                 thumbnail.setPixmap(pixmap)
             except:
                 thumbnail.setText('No thumbnail')
+            self.createThumbnail.setVisible(True)
+            self.thumbnail.setVisible(True)
+
+            #add the checkbox checkfunntion
+            checkBox = bndWidget.checkBox
+            checkBox.setObjectName('checkBox_' + str(self.bndNum))
+            self.checkBoxesToBndWidgets[checkBox.objectName()] = bndWidget
+
+            checkBox.stateChanged.connect(self.checkBoxStateChanged)
 
             self.bndNum += 1
         except Exception as e:
@@ -1354,8 +1386,20 @@ class MainWindow(QMainWindow, WindowMixin):
         # add the imageinfomation to imginfodock
         self.imgInfoLayout = QVBoxLayout()
         self.imgInfoLayout.setContentsMargins(0, 0, 0, 0)
+        self.imgInfoLayout.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+
+        self.hLayout = QVBoxLayout()
+        self.hLayout.setAlignment(Qt.AlignTop)
+        self.hLayout.addWidget(self.createThumbnail)
+        self.hLayout.addWidget(self.thumbnail)
+        self.thumbnail.setVisible(False)
+        self.createThumbnail.setVisible(False)
+        self.wholeImgInfoLayout = QHBoxLayout()
+        self.wholeImgInfoLayout.addLayout(self.imgInfoLayout)
+        self.wholeImgInfoLayout.addLayout(self.hLayout)
+        self.wholeImgInfoLayout.setAlignment(Qt.AlignTop)
         imgInfoListContainer = QWidget()
-        imgInfoListContainer.setLayout(self.imgInfoLayout)
+        imgInfoListContainer.setLayout(self.wholeImgInfoLayout)
 
         # jchen 0328 add Scroll function
         imgInfoScroll = QScrollArea()
@@ -1455,15 +1499,36 @@ class MainWindow(QMainWindow, WindowMixin):
         try:
             subclassText = bndBoxWidget.dropDownBoxs['sub'].currentText()
             self.objects[shape]['subclass'] = subclassText
-            try:
-                pixmap = QPixmap('icons/thumbnails/{}.png'.format(self.objects[shape]['subclass']))
-                pixmap.scaled(64, 64, Qt.KeepAspectRatio)
-                bndBoxWidget.thumbnail.setPixmap(pixmap)
-            except:
-                bndBoxWidget.thumbnail.setText('No thumbnail')
+
+            self.loadThumbnail(shape)
             self.setDirty()
         except Exception as e:
             print('Exception in QComboBoxSubChanged:',str(e))
+
+    def loadThumbnail(self,shape):
+        try:
+            pixmap = QPixmap('icons/thumbnails/{}.png'.format(self.objects[shape]['subclass']))
+            pixmap.scaled(64, 64, Qt.KeepAspectRatio)
+            self.thumbnail.setPixmap(pixmap)
+        except:
+            self.thumbnail.setText('No thumbnail')
+
+    #checkbox state change function
+    # def checkBoxStateChanged(self):
+    #     checkBox = self.sender()
+    #     checkBoxName = checkBox.objectName()
+    #     print(checkBoxName)
+    #     try:
+    #         bndBoxWidget = self.checkBoxesToBndWidgets[checkBoxName]
+    #         shape = self.bndWidgetsToShapes[bndBoxWidget]
+    #     except:
+    #         return
+    #
+    #     if checkBox.isChecked():
+    #         print(checkBox.isChecked())
+    #         #self.labelSelectionChanged()
+
+
 
     def parseXML(self, filepath):
         assert filepath.endswith(XML_EXT), "Unsupport file format"
@@ -1913,6 +1978,8 @@ class MainWindow(QMainWindow, WindowMixin):
         self.remLabel(self.canvas.deleteSelected())
         self.setDirty()
         if self.noShapes():
+            self.thumbnail.setVisible(False)
+            self.createThumbnail.setVisible(False)
             for action in self.actions.onShapesPresent:
                 action.setEnabled(False)
 

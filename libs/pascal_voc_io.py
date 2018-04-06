@@ -20,6 +20,9 @@ class PascalVocWriter:
         self.localImgPath = localImgPath
         self.verified = False
         self.object_items = {}
+        self.latitude = None
+        self.longitude = None
+        self.altitude = None
     def prettify(self, elem):
         """
             Return a pretty-printed XML string for the Element.
@@ -69,6 +72,16 @@ class PascalVocWriter:
             depth.text = str(self.imgSize[2])
         else:
             depth.text = '1'
+
+        imgLocation =  SubElement(top, 'Location')
+        imgLatitude = SubElement(imgLocation, 'Latitude')
+        imgLongitude = SubElement(imgLocation, 'Longitude')
+        imgAltitude = SubElement(imgLocation, 'Altitude')
+        imgLatitude.text = str(self.latitude)
+        imgLongitude.text = str(self.longitude)
+        imgAltitude.text = str(self.altitude)
+
+
 
         segmented = SubElement(top, 'segmented')
         segmented.text = '0'
