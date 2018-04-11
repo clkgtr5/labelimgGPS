@@ -657,7 +657,7 @@ class MainWindow(QMainWindow, WindowMixin):
                 image1 = ImageQt.ImageQt(cropped_img)
                 image2 = QImage(image1)
                 pixmap = QPixmap.fromImage(image2)
-                pixmap.scaled(64,64)
+                pixmap.scaled(32,32)
                 TBD.imgThumbnail.setPixmap(pixmap)
             except:
                 print('load img to label failed')
@@ -1215,7 +1215,7 @@ class MainWindow(QMainWindow, WindowMixin):
                 if updateWebbrowser:
                     #googleQueryUrl = 'https://www.google.com/maps/search/?api=1&query='
                     vtranMapUrl = 'https://vtrans.github.io/signs-data-viewer/?lon=-72.683117&lat=44.296882&zoomLevel=18'
-                    imgUrl = 'https://vtrans.github.io/signs-data-viewer/?lon={:.6f}&lat={:.6f}&zoomLevel=18'.format(self.geoInfo[1],self.geoInfo[0])
+                    imgUrl = 'https://vtrans.github.io/signs-data-viewer/?lon={}&lat={}&zoomLevel=18'.format(self.geoInfo[1],self.geoInfo[0])
                     self.webViewer.load(QUrl(imgUrl))
                     self.urlbar.setText(imgUrl)
                 #print(imgUrl)
@@ -1350,6 +1350,12 @@ class MainWindow(QMainWindow, WindowMixin):
             # checkBox.stateChanged.connect(self.checkBoxStateChanged)
 
             #add the goto geo function
+            gotoGeoButton = bndWidget.gotoGeoButton
+            gotoGeoButton.setObjectName('gotoGeoButton_' + str(self.bndNum))
+            gotoGeoButton.clicked.connect(self.gotoGeo)
+
+            self.gotoGeoToBndWidgets[gotoGeoButton.objectName()] = bndWidget
+
 
             self.bndNum += 1
         except Exception as e:
@@ -1486,6 +1492,24 @@ class MainWindow(QMainWindow, WindowMixin):
         except:
             print('subclass show failed')
 
+    def gotoGeo(self):
+        gotoGeoName = self.sender().objectName()
+        try:
+            bndBoxWidget = self.gotoGeoToBndWidgets[gotoGeoName]
+            shape = self.bndWidgetsToShapes[bndBoxWidget]
+        except:
+            print('find goto geo and shap failed')
+            return
+
+        try:
+            lat = self.objects[shape]['latitude']
+            long = self.objects[shape]['longitude']
+            imgUrl = 'https://vtrans.github.io/signs-data-viewer/?lon={}&lat={}&zoomLevel=18'.format(float(long),float(lat))
+            self.webViewer.load(QUrl(imgUrl))
+            self.urlbar.setText(imgUrl)
+        except Exception as e:
+            print('Exception in gotoGeo:',str(e))
+            print('gotoGeo failed')
 
     #jchen = 20180402 new
     def QComboBoxSubChanged(self):
