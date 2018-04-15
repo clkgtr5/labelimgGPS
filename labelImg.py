@@ -327,6 +327,8 @@ class MainWindow(QMainWindow, WindowMixin):
         self.thumbnail.setMinimumWidth(100)
         self.thumbnail.setMinimumHeight(100)
         self.thumbnail.setScaledContents(True)
+
+
         # Connect to itemChanged to detect checkbox changes.
         self.imgInfodock = QDockWidget(u'image info', self)
         self.imgInfodock.setObjectName(u'img  infos')
@@ -918,8 +920,12 @@ class MainWindow(QMainWindow, WindowMixin):
         except:
             print('file path is none')
         #jcehn = 20180401 add imginfo
-        self.addImgInfo(shape)
-        self.shapesToBndWidgets[shape].boundingBoxInfoLayoutContainer.setVisible(True)
+        try:                         # try to fix this "'MainWindow' object has no attribute 'imgInfoLayout'"
+            temp = self.imgInfoLayout
+            self.addImgInfo(shape)
+            self.shapesToBndWidgets[shape].boundingBoxInfoLayoutContainer.setVisible(True)
+        except Exception as e:
+            print(e.args)
         for action in self.actions.onShapesPresent:
             action.setEnabled(True)
 
@@ -1291,9 +1297,10 @@ class MainWindow(QMainWindow, WindowMixin):
             object = self.objects[shape]
         except:
             self.objects[shape] = {}
-
-        self.imgInfoLayout.addWidget(bndWidget.boundingBoxInfoLayoutContainer)
-
+        try:
+            self.imgInfoLayout.addWidget(bndWidget.boundingBoxInfoLayoutContainer)
+        except Exception as e:
+            print(str(e))
         #bndWidget.setObjectName("BoundingBoxWidget_{}".format(count))
         try:
             with open('data/subclass.txt', 'r') as subclass:
