@@ -27,8 +27,8 @@ class BoundingBoxWidget(QWidget):
         self.pasteButton.setMaximumWidth(80)
         self.pasteAllButton =  QPushButton('Paste All')
         self.pasteAllButton.setMaximumWidth(80)
-        self.gotoGeo = QPushButton('Goto Geo')
-        self.gotoGeo.setMaximumWidth(80)
+        self.gotoGeoButton = QPushButton('Goto Geo')
+        self.gotoGeoButton.setMaximumWidth(80)
 
         # topLayout = QHBoxLayout()
         # topLayout.setAlignment(Qt.AlignLeft|Qt.AlignCenter)
@@ -75,7 +75,7 @@ class BoundingBoxWidget(QWidget):
         #print(os.getcwd() + "icons/color_line.png")
         #boundingBoxInfoLayout.addWidget( self.thumbnail, x / 11, x % 11)
 
-        boundingBoxInfoLayout.addWidget(self.gotoGeo, x / 12, x % 12)
+        boundingBoxInfoLayout.addWidget(self.gotoGeoButton, x / 12, x % 12)
         boundingBoxInfoLayout.setAlignment(Qt.AlignTop |Qt.AlignLeft)
         #wholeLayout.addLayout(topLayout)
         wholeLayout.addLayout(boundingBoxInfoLayout)
