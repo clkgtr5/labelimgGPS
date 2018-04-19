@@ -1249,6 +1249,7 @@ class MainWindow(QMainWindow, WindowMixin):
             self.toggleActions(True)
 
             # Label xml file and show bound box according to its filename
+            xmlPath = None
             if self.usingPascalVocFormat is True:
                 if self.defaultSaveDir is not None:
                     basename = os.path.basename(
@@ -1266,10 +1267,11 @@ class MainWindow(QMainWindow, WindowMixin):
                         self.loadPascalXMLByFilename(xmlPath)
 
                 #Jchen = 20180316 add image info dock for bound box info
-                xmlPath = os.path.splitext(filePath)[0] + XML_EXT
+                #xmlPath = os.path.splitext(filePath)[0] + XML_EXT
                 shapes = self.canvas.shapes
 
                 try:
+                    
                     signinfos = self.parseXML(xmlPath)
                     #print('signinfos:',len(signinfos),'shapes:',len(shapes))
                     for count in range(len(shapes)):
