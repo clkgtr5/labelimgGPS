@@ -1250,15 +1250,20 @@ class MainWindow(QMainWindow, WindowMixin):
 
             # Label xml file and show bound box according to its filename
             if self.usingPascalVocFormat is True:
-                # if self.defaultSaveDir is not None:
-                #     basename = os.path.basename(
-                #         os.path.splitext(self.filePath)[0]) + XML_EXT
-                #     xmlPath = os.path.join(self.defaultSaveDir, basename)
-                #     self.loadPascalXMLByFilename(xmlPath)
-                # else:
-                xmlPath = os.path.splitext(filePath)[0] + XML_EXT
-                if os.path.isfile(xmlPath):
-                    self.loadPascalXMLByFilename(xmlPath)
+                if self.defaultSaveDir is not None:
+                    basename = os.path.basename(
+                        os.path.splitext(self.filePath)[0]) + XML_EXT
+                    xmlPath = os.path.join(self.defaultSaveDir, basename)
+                    if os.path.isfile(xmlPath):
+                        self.loadPascalXMLByFilename(xmlPath)
+                    else:
+                        xmlPath = os.path.splitext(filePath)[0] + XML_EXT
+                        if os.path.isfile(xmlPath):
+                            self.loadPascalXMLByFilename(xmlPath)
+                else:
+                    xmlPath = os.path.splitext(filePath)[0] + XML_EXT
+                    if os.path.isfile(xmlPath):
+                        self.loadPascalXMLByFilename(xmlPath)
 
                 #Jchen = 20180316 add image info dock for bound box info
                 xmlPath = os.path.splitext(filePath)[0] + XML_EXT
