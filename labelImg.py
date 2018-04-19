@@ -655,11 +655,11 @@ class MainWindow(QMainWindow, WindowMixin):
             except:
                 print('load image failed')
             try:
-                cropped_img.resize((64,64), Image.ANTIALIAS)
-                image1 = ImageQt.ImageQt(cropped_img)
+                temp_img = cropped_img.resize((64,64), Image.ANTIALIAS)
+                image1 = ImageQt.ImageQt(temp_img)
                 image2 = QImage(image1)
                 pixmap = QPixmap.fromImage(image2)
-                pixmap.scaled(32,32)
+                pixmap.scaled(64,64,Qt.KeepAspectRatio)
                 TBD.imgThumbnail.setPixmap(pixmap)
             except:
                 print('load img to label failed')
@@ -1250,15 +1250,15 @@ class MainWindow(QMainWindow, WindowMixin):
 
             # Label xml file and show bound box according to its filename
             if self.usingPascalVocFormat is True:
-                if self.defaultSaveDir is not None:
-                    basename = os.path.basename(
-                        os.path.splitext(self.filePath)[0]) + XML_EXT
-                    xmlPath = os.path.join(self.defaultSaveDir, basename)
+                # if self.defaultSaveDir is not None:
+                #     basename = os.path.basename(
+                #         os.path.splitext(self.filePath)[0]) + XML_EXT
+                #     xmlPath = os.path.join(self.defaultSaveDir, basename)
+                #     self.loadPascalXMLByFilename(xmlPath)
+                # else:
+                xmlPath = os.path.splitext(filePath)[0] + XML_EXT
+                if os.path.isfile(xmlPath):
                     self.loadPascalXMLByFilename(xmlPath)
-                else:
-                    xmlPath = os.path.splitext(filePath)[0] + XML_EXT
-                    if os.path.isfile(xmlPath):
-                        self.loadPascalXMLByFilename(xmlPath)
 
                 #Jchen = 20180316 add image info dock for bound box info
                 xmlPath = os.path.splitext(filePath)[0] + XML_EXT
@@ -1567,7 +1567,6 @@ class MainWindow(QMainWindow, WindowMixin):
         parser = etree.XMLParser(encoding=ENCODE_METHOD)
         xmltree = ElementTree.parse(filepath, parser=parser).getroot()
 
-        signInfos = []
         for object_iter in xmltree.findall('object'):
             signInfo = {}
             try:
