@@ -10,7 +10,7 @@ import os
 
 from functools import partial
 from collections import defaultdict
-
+from math import sin, cos, sqrt, atan2, radians
 try:
     from PyQt5.QtGui import *
     from PyQt5.QtCore import *
@@ -148,6 +148,10 @@ class MainWindow(QMainWindow, WindowMixin):
         #self.checkBoxesToBndWidgets = {}
         self.gotoGeoToBndWidgets = {}
 
+        # save last image GPS INFO
+        self.geoInfo = None
+        self.lastGPS = None
+
         self.bndNum = 0
         #refer cropped img
         self.cropped_img = None
@@ -267,6 +271,26 @@ class MainWindow(QMainWindow, WindowMixin):
         self.navigation_bar = QToolBar('Navigation')
         self.navigation_bar.setIconSize(QSize(16, 16))
 
+        #show distance by calculate the GPS INFO
+        self.distLabel = QLabel()
+        self.distLabel.setText("Distance (feet) (meter):")
+        self.distLabel.setMaximumHeight(40)
+        self.distTextFt = QTextEdit()
+        self.distTextFt.setReadOnly(True)
+        self.distTextFt.setMaximumHeight(40)
+        self.distTextFt.setMaximumWidth(100)
+        self.distTextMt = QTextEdit()
+        self.distTextMt.setReadOnly(True)
+        self.distTextMt.setMaximumHeight(40)
+        self.distTextMt.setMaximumWidth(100)
+
+        distLayout = QHBoxLayout()
+        distLayout.addWidget(self.distLabel)
+        distLayout.addWidget(self.distTextFt)
+        distLayout.addWidget(self.distTextMt)
+        distContainer = QWidget()
+        distContainer.setMaximumHeight(50)
+        distContainer.setLayout(distLayout)
         #add buttons to navigation bar
         back_button = QAction(QIcon('icons/backward.png'), 'Back', self)
         next_button = QAction(QIcon('icons/forward.png'), 'Forward', self)
@@ -298,6 +322,7 @@ class MainWindow(QMainWindow, WindowMixin):
         webBrowserLayout.setContentsMargins(0, 0, 0, 0)
         webBrowserLayout.addWidget(self.navigation_bar) #add navigation_bar
         webBrowserLayout.addWidget(self.webViewer)
+        webBrowserLayout.addWidget(distContainer)
         webBrowserContainer = QWidget()
         webBrowserContainer.setLayout(webBrowserLayout)
 
@@ -562,7 +587,7 @@ class MainWindow(QMainWindow, WindowMixin):
         saveDir = ustr(settings.get(SETTING_SAVE_DIR, None))
         self.lastOpenDir = ustr(settings.get(SETTING_LAST_OPEN_DIR, None))
         if saveDir is not None and os.path.exists(saveDir):
-            self.defaultSaveDir = saveDir
+            self.defaultSaveDir = self.lastOpenDir
             self.statusBar().showMessage('%s started. Annotation will be saved to %s' %
                                          (__appname__, self.defaultSaveDir))
             self.statusBar().show()
@@ -1224,6 +1249,7 @@ class MainWindow(QMainWindow, WindowMixin):
                     imgUrl = 'https://vtrans.github.io/signs-data-viewer/?lon={}&lat={}&zoomLevel=18'.format(self.geoInfo[1],self.geoInfo[0])
                     self.webViewer.load(QUrl(imgUrl))
                     self.urlbar.setText(imgUrl)
+                print('curGPS lat = {},long = {}'.format(self.geoInfo[0],self.geoInfo[1]))
                 #print(imgUrl)
             except:
                 print('loading img geoInfo failed.')
@@ -1271,7 +1297,7 @@ class MainWindow(QMainWindow, WindowMixin):
                 shapes = self.canvas.shapes
 
                 try:
-                    
+
                     signinfos = self.parseXML(xmlPath)
                     #print('signinfos:',len(signinfos),'shapes:',len(shapes))
                     for count in range(len(shapes)):
@@ -1282,6 +1308,10 @@ class MainWindow(QMainWindow, WindowMixin):
 
                 self.loadImgInfo(shapes)
 
+            # show the distance information
+            if(self.lastGPS != None):
+                self.distTextFt.setText(self.calc_geo_dist(self.lastGPS[0],self.lastGPS[1],self.geoInfo[0],self.geoInfo[1],"feet"))
+                self.distTextMt.setText(self.calc_geo_dist(self.lastGPS[0], self.lastGPS[1], self.geoInfo[0], self.geoInfo[1], "meter"))
             self.setWindowTitle(__appname__ + ' ' + filePath)
 
             # Default : select last item if there is at least one item
@@ -1384,7 +1414,7 @@ class MainWindow(QMainWindow, WindowMixin):
             bndWidget.labelLineEdits['lat'].setText('{:.7f}'.format(float(latText)))
             bndWidget.labelLineEdits['lon'].setText('{:.7f}'.format(float(longText)))
         except Exception as e:
-            print('exception in loading geo info:',str(e))
+            #print('exception in loading geo info:',str(e))
             bndWidget.labelLineEdits['lat'].setText('{:.7f}'.format(self.geoInfo[0]))
             bndWidget.labelLineEdits['lon'].setText('{:.7f}'.format(self.geoInfo[1]))
         except:
@@ -1567,13 +1597,35 @@ class MainWindow(QMainWindow, WindowMixin):
     #         print(checkBox.isChecked())
     #         #self.labelSelectionChanged()
 
+    def calc_geo_dist(self,lat1, lon1, lat2, lon2, unit = "meter"):
+        # approximate radius of earth in km
+        R = 6373.0
 
+        lat1 = radians(float(lat1))
+        lon1 = radians(float(lon1))
+        lat2 = radians(float(lat2))
+        lon2 = radians(float(lon2))
+
+        dlon = lon2 - lon1
+        dlat = lat2 - lat1
+
+        a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+        c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+        distance = R * c
+
+        if(unit == "feet"):
+            return ("{:.6f}".format(distance * 1000 * 3.2808))
+        if (unit == "meter"):
+            return ("{:.6f}".format(distance * 1000 ))
+        return None
 
     def parseXML(self, filepath):
         assert filepath.endswith(XML_EXT), "Unsupport file format"
         parser = etree.XMLParser(encoding=ENCODE_METHOD)
         xmltree = ElementTree.parse(filepath, parser=parser).getroot()
 
+        signInfos = []
         for object_iter in xmltree.findall('object'):
             signInfo = {}
             try:
@@ -1742,15 +1794,17 @@ class MainWindow(QMainWindow, WindowMixin):
             settings[SETTING_FILENAME] = self.filePath if self.filePath else ''
         else:
             settings[SETTING_FILENAME] = ''
-
-        settings[SETTING_WIN_SIZE] = self.size()
-        settings[SETTING_WIN_POSE] = self.pos()
-        settings[SETTING_WIN_STATE] = self.saveState()
+        print(self.saveLayout.isChecked())
+        if self.saveLayout.isChecked():
+            settings[SETTING_WIN_SIZE] = self.size()
+            settings[SETTING_WIN_POSE] = self.pos()
+            settings[SETTING_DOCK_GEOMETRY] = self.dock.saveGeometry()
+            settings[SETTING_WIN_STATE] = self.saveState()
         settings[SETTING_LINE_COLOR] = self.lineColor
         settings[SETTING_FILL_COLOR] = self.fillColor
         settings[SETTING_RECENT_FILES] = self.recentFiles
         settings[SETTING_ADVANCE_MODE] = not self._beginner
-        settings[SETTING_DOCK_GEOMETRY] = self.dock.saveGeometry()
+
         if self.defaultSaveDir and os.path.exists(self.defaultSaveDir):
             settings[SETTING_SAVE_DIR] = ustr(self.defaultSaveDir)
         else:
@@ -1764,9 +1818,8 @@ class MainWindow(QMainWindow, WindowMixin):
         settings[SETTING_AUTO_SAVE] = self.autoSaving.isChecked()
         settings[SETTING_SINGLE_CLASS] = self.singleClassMode.isChecked()
         #save setting
-        print(self.saveLayout.isChecked())
-        if self.saveLayout.isChecked():
-            settings.save()
+
+        settings.save()
     ## User Dialogs ##
 
     def loadRecent(self, filename):
@@ -1883,6 +1936,10 @@ class MainWindow(QMainWindow, WindowMixin):
         if self.filePath is None:
             return
 
+        if (self.geoInfo != None and len(self.geoInfo) > 1):
+            self.lastGPS = [self.geoInfo[0], self.geoInfo[1]]
+            print("last GPS: lat =  {}, long = {}".format(self.lastGPS[0], self.lastGPS[1]))
+
         currIndex = self.mImgList.index(self.filePath)
         if currIndex - 1 >= 0:
             filename = self.mImgList[currIndex - 1]
@@ -1912,6 +1969,10 @@ class MainWindow(QMainWindow, WindowMixin):
             currIndex = self.mImgList.index(self.filePath)
             if currIndex + 1 < len(self.mImgList):
                 filename = self.mImgList[currIndex + 1]
+
+        if(self.geoInfo != None and len (self.geoInfo) > 1):
+            self.lastGPS = [self.geoInfo[0],self.geoInfo[1]]
+            print("last GPS: lat =  {}, long = {}".format(self.lastGPS[0],self.lastGPS[1]))
 
         if filename:
             self.loadFile(filename)
