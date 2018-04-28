@@ -57,7 +57,7 @@ class LabelFile(object):
         try:
             writer.latitude = geoInfo[0]
             writer.longitude = geoInfo[1]
-            writer.altiude = geoInfo[2]
+            writer.altitude = geoInfo[2]
         except:
             print("no geoinfo in labelfile savePascalFormat")
         count = 0

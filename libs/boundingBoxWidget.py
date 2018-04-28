@@ -16,8 +16,12 @@ class BoundingBoxWidget(QWidget):
         lineEditLabelsName = [ 'lat', 'lon']
         dropDownBoxLabelsname = [ 'sub']
 
+        # Gps distance widgets
+        gpsDistanceName = ['Xd','Yd','Dist']
+
         self.labelLineEdits = {}
         self.dropDownBoxs = {}
+        self.gpsDistanceNameDict = {}
 
         self.checkBox = QCheckBox()
         self.checkBox.setMaximumWidth(20)
@@ -76,6 +80,24 @@ class BoundingBoxWidget(QWidget):
         #boundingBoxInfoLayout.addWidget( self.thumbnail, x / 11, x % 11)
 
         boundingBoxInfoLayout.addWidget(self.gotoGeoButton, x / 12, x % 12)
+        # all before is the first line widgets
+
+        z = 0
+        for itr in range(len(gpsDistanceName)):
+            label = QLabel(gpsDistanceName[itr] + ': ')
+            label.setMaximumWidth(40)
+            label.setMaximumHeight(30)
+            boundingBoxInfoLayout.addWidget(label,z/6+1,z % 6+1)
+            self.gpsDistanceNameDict[gpsDistanceName[itr]] = QLineEdit()
+            tEdit = self.gpsDistanceNameDict[gpsDistanceName[itr]]
+            tEdit.setFixedWidth(80)
+            tEdit.setReadOnly(True)
+            boundingBoxInfoLayout.addWidget(self.gpsDistanceNameDict[gpsDistanceName[itr]],z/6+1 , z % 6+2)
+            z += 2
+
+        # from here is the second line widgets.
+
+
         boundingBoxInfoLayout.setAlignment(Qt.AlignTop |Qt.AlignLeft)
         #wholeLayout.addLayout(topLayout)
         wholeLayout.addLayout(boundingBoxInfoLayout)

@@ -147,6 +147,8 @@ class MainWindow(QMainWindow, WindowMixin):
         self.QComboBoxSubsToBndWidgets = {}
         #self.checkBoxesToBndWidgets = {}
         self.gotoGeoToBndWidgets = {}
+        self.latLineEditToBndWidgets = {}
+        self.longLineEidtToBndWidgets = {}
 
         # save last image GPS INFO
         self.geoInfo = None
@@ -1249,7 +1251,7 @@ class MainWindow(QMainWindow, WindowMixin):
                     imgUrl = 'https://vtrans.github.io/signs-data-viewer/?lon={}&lat={}&zoomLevel=18'.format(self.geoInfo[1],self.geoInfo[0])
                     self.webViewer.load(QUrl(imgUrl))
                     self.urlbar.setText(imgUrl)
-                print('curGPS lat = {},long = {}'.format(self.geoInfo[0],self.geoInfo[1]))
+                #print('curGPS lat = {},long = {}'.format(self.geoInfo[0],self.geoInfo[1]))
                 #print(imgUrl)
             except:
                 print('loading img geoInfo failed.')
@@ -1329,11 +1331,7 @@ class MainWindow(QMainWindow, WindowMixin):
         bndWidget = BoundingBoxWidget()
         self.shapesToBndWidgets[shape] = bndWidget
         self.bndWidgetsToShapes[bndWidget] = shape
-        try:
-            #print('find object')
-            object = self.objects[shape]
-        except:
-            self.objects[shape] = {}
+
         try:
             self.imgInfoLayout.addWidget(bndWidget.boundingBoxInfoLayoutContainer)
         except Exception as e:
@@ -1400,26 +1398,59 @@ class MainWindow(QMainWindow, WindowMixin):
 
             self.gotoGeoToBndWidgets[gotoGeoButton.objectName()] = bndWidget
 
-
-            self.bndNum += 1
         except Exception as e:
             print('Exception in addImgInfo:', str(e))
             print('load class failed')
+
+        # unpdate the bndwidget number
 
         # partial(self.lineEditChanged, count)
         # Using image geoinfo as bounding box geoinfo.
         try:
             latText = self.objects[shape]['latitude']
-            longText =  self.objects[shape]['longitude']
-            bndWidget.labelLineEdits['lat'].setText('{:.7f}'.format(float(latText)))
-            bndWidget.labelLineEdits['lon'].setText('{:.7f}'.format(float(longText)))
+            longText = self.objects[shape]['longitude']
+
+            bndWidget.labelLineEdits['lat'].setText('{}'.format(float(latText)))
+            bndWidget.labelLineEdits['lon'].setText('{}'.format(float(longText)))
+
         except Exception as e:
             #print('exception in loading geo info:',str(e))
-            bndWidget.labelLineEdits['lat'].setText('{:.7f}'.format(self.geoInfo[0]))
-            bndWidget.labelLineEdits['lon'].setText('{:.7f}'.format(self.geoInfo[1]))
+            bndWidget.labelLineEdits['lat'].setText('{}'.format(self.geoInfo[0]))
+            bndWidget.labelLineEdits['lon'].setText('{}'.format(self.geoInfo[1]))
+            print("load Image GeoInfo")
         except:
             print('No Geoinfo')
+
+        try:
+            latLe = bndWidget.labelLineEdits['lat']
+            latLe.setObjectName('latLineEdit_' + str(self.bndNum))
+            self.latLineEditToBndWidgets[latLe.objectName()] = bndWidget
+
+            lonLe = bndWidget.labelLineEdits['lon']
+            lonLe.setObjectName('longLineEdit_' + str(self.bndNum))
+            self.longLineEidtToBndWidgets[lonLe.objectName()] = bndWidget
+
+            # latlineEdit and longLineEdit text change event connect to same funtion
+            latLe.textChanged.connect(lambda: self.gpsInfoChanged(latLe,lonLe))
+            lonLe.textChanged.connect(lambda: self.gpsInfoChanged(latLe,lonLe))
+        except Exception as e:
+            print("add the textChange funtion to lat and long lineEidt failed " + str(e))
+
+
+        self.bndNum += 1
+        # Calculate and show the bndbox distance from image
+        try:
+            x1 = self.geoInfo[0]    #image lat
+            y1 = self.geoInfo[1]    #image long
+            x2 = float(self.objects[shape]['latitude'])
+            y2 = float(self.objects[shape]['longitude'])
+            bndWidget.gpsDistanceNameDict['Xd'].setText(self.calc_geo_dist(x2, y1, x2, y2,'meter'))
+            bndWidget.gpsDistanceNameDict['Yd'].setText(self.calc_geo_dist(x1, y2, x2, y2,'meter'))
+            bndWidget.gpsDistanceNameDict['Dist'].setText(self.calc_geo_dist(x1, y1, x2, y2,'meter'))
+        except Exception as e:
+            print("Load the distance failed: "+str(e))
         #bndWidget.numberOfBoundingBoxs.setText(str(count + 1))
+
 
     def remImgInfo(self,shape):
         if shape is None:
@@ -1472,6 +1503,7 @@ class MainWindow(QMainWindow, WindowMixin):
     def pasteGeo(self):
         clipboardText = QApplication.clipboard().text()
         pasteGeoName = self.sender().objectName()
+
         try:
             bndBoxWidget = self.pasteGeosToBndWidgets[pasteGeoName]
             shape = self.bndWidgetsToShapes[bndBoxWidget]
@@ -1554,6 +1586,29 @@ class MainWindow(QMainWindow, WindowMixin):
         except Exception as e:
             print('Exception in gotoGeo:',str(e))
             print('gotoGeo failed')
+
+    # jchen 20180428 add the update function for change the line edit of gps information
+    def gpsInfoChanged(self,lat = None,long = None):
+        if(lat == None or long == None):
+            print("in gpsInfoChanged and lat long is none")
+            return
+        try:
+            bndBoxWidget = self.latLineEditToBndWidgets[lat.objectName()]
+            shape = self.bndWidgetsToShapes[bndBoxWidget]
+        except:
+            print('find lat lineEidt and shape failed')
+            return
+
+        try:
+            x1 = self.geoInfo[0]    #image lat
+            y1 = self.geoInfo[1]    #image long
+            x2 = float(bndBoxWidget.labelLineEdits['lat'].text())
+            y2 = float(bndBoxWidget.labelLineEdits['lon'].text())
+            bndBoxWidget.gpsDistanceNameDict['Xd'].setText(self.calc_geo_dist(x2, y1, x2, y2,'meter'))
+            bndBoxWidget.gpsDistanceNameDict['Yd'].setText(self.calc_geo_dist(x1, y2, x2, y2,'meter'))
+            bndBoxWidget.gpsDistanceNameDict['Dist'].setText(self.calc_geo_dist(x1, y1, x2, y2,'meter'))
+        except Exception as e:
+            print("update the distance failed: "+str(e))
 
     #jchen = 20180402 new
     def QComboBoxSubChanged(self):
@@ -1938,7 +1993,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         if (self.geoInfo != None and len(self.geoInfo) > 1):
             self.lastGPS = [self.geoInfo[0], self.geoInfo[1]]
-            print("last GPS: lat =  {}, long = {}".format(self.lastGPS[0], self.lastGPS[1]))
+            #print("last GPS: lat =  {}, long = {}".format(self.lastGPS[0], self.lastGPS[1]))
 
         currIndex = self.mImgList.index(self.filePath)
         if currIndex - 1 >= 0:
@@ -1972,7 +2027,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         if(self.geoInfo != None and len (self.geoInfo) > 1):
             self.lastGPS = [self.geoInfo[0],self.geoInfo[1]]
-            print("last GPS: lat =  {}, long = {}".format(self.lastGPS[0],self.lastGPS[1]))
+            #print("last GPS: lat =  {}, long = {}".format(self.lastGPS[0],self.lastGPS[1]))
 
         if filename:
             self.loadFile(filename)
