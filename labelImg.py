@@ -1332,6 +1332,11 @@ class MainWindow(QMainWindow, WindowMixin):
         self.shapesToBndWidgets[shape] = bndWidget
         self.bndWidgetsToShapes[bndWidget] = shape
 
+        #this try catch block make sure when the new shape been create the self.objects[shape] will be initial to dict
+        try:
+            object = self.objects[shape]
+        except:
+            self.objects[shape] = {}
         try:
             self.imgInfoLayout.addWidget(bndWidget.boundingBoxInfoLayoutContainer)
         except Exception as e:
@@ -1451,8 +1456,8 @@ class MainWindow(QMainWindow, WindowMixin):
             y1 = self.geoInfo[1]    #image long
             x2 = float(self.objects[shape]['latitude'])
             y2 = float(self.objects[shape]['longitude'])
-            bndWidget.gpsDistanceNameDict['Xd'].setText(self.calc_geo_dist(x2, y1, x2, y2,'meter'))
-            bndWidget.gpsDistanceNameDict['Yd'].setText(self.calc_geo_dist(x1, y2, x2, y2,'meter'))
+            bndWidget.gpsDistanceNameDict['Xd'].setText(self.calc_geo_dist(x1, y2, x2, y2,'meter'))
+            bndWidget.gpsDistanceNameDict['Yd'].setText(self.calc_geo_dist(x2, y1, x2, y2,'meter'))
             bndWidget.gpsDistanceNameDict['Dist'].setText(self.calc_geo_dist(x1, y1, x2, y2,'meter'))
         except Exception as e:
             print("Load the distance failed: "+str(e))
@@ -1611,8 +1616,8 @@ class MainWindow(QMainWindow, WindowMixin):
             y1 = self.geoInfo[1]    #image long
             x2 = float(bndBoxWidget.labelLineEdits['lat'].text())
             y2 = float(bndBoxWidget.labelLineEdits['lon'].text())
-            bndBoxWidget.gpsDistanceNameDict['Xd'].setText(self.calc_geo_dist(x2, y1, x2, y2,'meter'))
-            bndBoxWidget.gpsDistanceNameDict['Yd'].setText(self.calc_geo_dist(x1, y2, x2, y2,'meter'))
+            bndBoxWidget.gpsDistanceNameDict['Xd'].setText(self.calc_geo_dist(x1, y2, x2, y2,'meter'))
+            bndBoxWidget.gpsDistanceNameDict['Yd'].setText(self.calc_geo_dist(x2, y1, x2, y2,'meter'))
             bndBoxWidget.gpsDistanceNameDict['Dist'].setText(self.calc_geo_dist(x1, y1, x2, y2,'meter'))
 
             bndBoxWidget.gpsDistanceNameDict['Xd'].setCursorPosition(0)
