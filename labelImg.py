@@ -1421,6 +1421,9 @@ class MainWindow(QMainWindow, WindowMixin):
         except:
             print('No Geoinfo')
 
+        #set the cursor to the left most position
+        bndWidget.labelLineEdits['lat'].setCursorPosition(0)
+        bndWidget.labelLineEdits['lon'].setCursorPosition(0)
         try:
             latLe = bndWidget.labelLineEdits['lat']
             latLe.setObjectName('latLineEdit_' + str(self.bndNum))
@@ -1429,6 +1432,10 @@ class MainWindow(QMainWindow, WindowMixin):
             lonLe = bndWidget.labelLineEdits['lon']
             lonLe.setObjectName('longLineEdit_' + str(self.bndNum))
             self.longLineEidtToBndWidgets[lonLe.objectName()] = bndWidget
+
+            latLe.setCursorPosition(0)
+            lonLe.setCursorPosition(0)
+
 
             # latlineEdit and longLineEdit text change event connect to same funtion
             latLe.textChanged.connect(lambda: self.gpsInfoChanged(latLe,lonLe))
@@ -1607,6 +1614,10 @@ class MainWindow(QMainWindow, WindowMixin):
             bndBoxWidget.gpsDistanceNameDict['Xd'].setText(self.calc_geo_dist(x2, y1, x2, y2,'meter'))
             bndBoxWidget.gpsDistanceNameDict['Yd'].setText(self.calc_geo_dist(x1, y2, x2, y2,'meter'))
             bndBoxWidget.gpsDistanceNameDict['Dist'].setText(self.calc_geo_dist(x1, y1, x2, y2,'meter'))
+
+            bndBoxWidget.gpsDistanceNameDict['Xd'].setCursorPosition(0)
+            bndBoxWidget.gpsDistanceNameDict['Yd'].setCursorPosition(0)
+            bndBoxWidget.gpsDistanceNameDict['Dist'].setCursorPosition(0)
         except Exception as e:
             print("update the distance failed: "+str(e))
 
@@ -1670,9 +1681,9 @@ class MainWindow(QMainWindow, WindowMixin):
         distance = R * c
 
         if(unit == "feet"):
-            return ("{:.6f}".format(distance * 1000 * 3.2808))
+            return ("{:.3f}".format(distance * 1000 * 3.2808))
         if (unit == "meter"):
-            return ("{:.6f}".format(distance * 1000 ))
+            return ("{:.3f}".format(distance * 1000 ))
         return None
 
     def parseXML(self, filepath):
