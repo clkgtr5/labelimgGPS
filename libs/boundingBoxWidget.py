@@ -82,17 +82,17 @@ class BoundingBoxWidget(QWidget):
         boundingBoxInfoLayout.addWidget(self.gotoGeoButton, x / 12, x % 12)
         # all before is the first line widgets
 
-        z = 0
+        z = 10
         for itr in range(len(gpsDistanceName)):
             label = QLabel(gpsDistanceName[itr] + ': ')
             label.setMaximumWidth(40)
             label.setMaximumHeight(30)
-            boundingBoxInfoLayout.addWidget(label,z/6+1,z % 6+1)
+            boundingBoxInfoLayout.addWidget(label,z/16,z % 16+1)
             self.gpsDistanceNameDict[gpsDistanceName[itr]] = QLineEdit()
             tEdit = self.gpsDistanceNameDict[gpsDistanceName[itr]]
-            tEdit.setFixedWidth(80)
+            tEdit.setFixedWidth(60)
             tEdit.setReadOnly(True)
-            boundingBoxInfoLayout.addWidget(self.gpsDistanceNameDict[gpsDistanceName[itr]],z/6+1 , z % 6+2)
+            boundingBoxInfoLayout.addWidget(self.gpsDistanceNameDict[gpsDistanceName[itr]],z/16 , z % 16+2)
             z += 2
 
         # from here is the second line widgets.

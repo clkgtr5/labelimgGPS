@@ -1450,15 +1450,31 @@ class MainWindow(QMainWindow, WindowMixin):
 
 
         self.bndNum += 1
-        # Calculate and show the bndbox distance from image
+        # Calculate and show the sign (bndbox) distance from image
         try:
-            x1 = self.geoInfo[0]    #image lat
-            y1 = self.geoInfo[1]    #image long
-            x2 = float(self.objects[shape]['latitude'])
-            y2 = float(self.objects[shape]['longitude'])
-            bndWidget.gpsDistanceNameDict['Xd'].setText(self.calc_geo_dist(x1, y2, x2, y2,'meter'))
-            bndWidget.gpsDistanceNameDict['Yd'].setText(self.calc_geo_dist(x2, y1, x2, y2,'meter'))
-            bndWidget.gpsDistanceNameDict['Dist'].setText(self.calc_geo_dist(x1, y1, x2, y2,'meter'))
+            if(self.lastGPS != None):
+                x0 = self.lastGPS[0]
+                y0 = self.lastGPS[1]
+
+                x1 = self.geoInfo[0]    #image lat
+                y1 = self.geoInfo[1]    #image long
+
+                x2 = float(self.objects[shape]['latitude'])
+                y2 = float(self.objects[shape]['longitude'])
+
+                direction = self.calc_bearing(x0, y0, x1, y1)   # angle A1
+                signAngle = self.calc_bearing(x1,y1,x2,y2)      # angle A2
+                actAngle = abs(direction - signAngle)                # angle A3
+                distance = self.calc_geo_dist(x1, y1, x2, y2,'meter')
+
+                Xd = float(distance) * float(sin(actAngle))
+                Yd = float(distance) * float(cos(actAngle))
+                bndWidget.gpsDistanceNameDict['Xd'].setText(str(Xd))
+                bndWidget.gpsDistanceNameDict['Yd'].setText(str(Yd))
+                bndWidget.gpsDistanceNameDict['Dist'].setText(distance)
+                bndWidget.gpsDistanceNameDict['Xd'].setCursorPosition(0)
+                bndWidget.gpsDistanceNameDict['Yd'].setCursorPosition(0)
+                bndWidget.gpsDistanceNameDict['Dist'].setCursorPosition(0)
         except Exception as e:
             print("Load the distance failed: "+str(e))
         #bndWidget.numberOfBoundingBoxs.setText(str(count + 1))
@@ -1612,17 +1628,31 @@ class MainWindow(QMainWindow, WindowMixin):
             return
 
         try:
-            x1 = self.geoInfo[0]    #image lat
-            y1 = self.geoInfo[1]    #image long
-            x2 = float(bndBoxWidget.labelLineEdits['lat'].text())
-            y2 = float(bndBoxWidget.labelLineEdits['lon'].text())
-            bndBoxWidget.gpsDistanceNameDict['Xd'].setText(self.calc_geo_dist(x1, y2, x2, y2,'meter'))
-            bndBoxWidget.gpsDistanceNameDict['Yd'].setText(self.calc_geo_dist(x2, y1, x2, y2,'meter'))
-            bndBoxWidget.gpsDistanceNameDict['Dist'].setText(self.calc_geo_dist(x1, y1, x2, y2,'meter'))
+            if (self.lastGPS != None):
+                x0 = self.lastGPS[0]
+                y0 = self.lastGPS[1]
 
-            bndBoxWidget.gpsDistanceNameDict['Xd'].setCursorPosition(0)
-            bndBoxWidget.gpsDistanceNameDict['Yd'].setCursorPosition(0)
-            bndBoxWidget.gpsDistanceNameDict['Dist'].setCursorPosition(0)
+                x1 = self.geoInfo[0]  # image lat
+                y1 = self.geoInfo[1]  # image long
+
+                x2 = float(self.objects[shape]['latitude'])
+                y2 = float(self.objects[shape]['longitude'])
+
+                direction = self.calc_bearing(x0, y0, x1, y1)  # angle A1
+                signAngle = self.calc_bearing(x1, y1, x2, y2)  # angle A2
+                actAngle = abs(direction - signAngle)  # angle A3
+                distance = self.calc_geo_dist(x1, y1, x2, y2, 'meter')
+                
+
+                Xd = float(distance) * float(sin(actAngle))
+                Yd = float(distance) * float(cos(actAngle))
+                bndWidget.gpsDistanceNameDict['Xd'].setText(str(Xd))
+                bndWidget.gpsDistanceNameDict['Yd'].setText(str(Yd))
+                bndWidget.gpsDistanceNameDict['Dist'].setText(distance)
+                bndWidget.gpsDistanceNameDict['Xd'].setCursorPosition(0)
+                bndWidget.gpsDistanceNameDict['Yd'].setCursorPosition(0)
+                bndWidget.gpsDistanceNameDict['Dist'].setCursorPosition(0)
+            
         except Exception as e:
             print("update the distance failed: "+str(e))
 
@@ -1653,20 +1683,24 @@ class MainWindow(QMainWindow, WindowMixin):
         except:
             self.thumbnail.setText('No thumbnail')
 
-    #checkbox state change function
-    # def checkBoxStateChanged(self):
-    #     checkBox = self.sender()
-    #     checkBoxName = checkBox.objectName()
-    #     print(checkBoxName)
-    #     try:
-    #         bndBoxWidget = self.checkBoxesToBndWidgets[checkBoxName]
-    #         shape = self.bndWidgetsToShapes[bndBoxWidget]
-    #     except:
-    #         return
-    #
-    #     if checkBox.isChecked():
-    #         print(checkBox.isChecked())
-    #         #self.labelSelectionChanged()
+    def calc_bearing(self,lat1, lon1, lat2, lon2):
+        # approximate radius of earth in km
+        R = 6373.0
+
+        lat1 = radians(float(lat1))
+        lon1 = radians(float(lon1))
+        lat2 = radians(float(lat2))
+        lon2 = radians(float(lon2))
+
+        dlon = lon2 - lon1
+        dlat = lat2 - lat1
+
+        by = sin(dlon) * cos(lat2)
+        bx = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dlon)
+
+        bearing = atan2(by, bx)
+
+        return bearing
 
     def calc_geo_dist(self,lat1, lon1, lat2, lon2, unit = "meter"):
         # approximate radius of earth in km
