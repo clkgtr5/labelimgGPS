@@ -108,6 +108,9 @@ class MainWindow(QMainWindow, WindowMixin):
                           # "http://www.arcgis.com/home/webmap/viewer.html?url=http%3A%2F%2Fmaps.vtrans.vermont.gov" \
                           # "%2Farcgis%2Frest%2Fservices%2FAMP%2FSign_Symbols%2FFeatureServer&source=sd"
                           # "https://rawgit.com/VTrans/signs-data-viewer/master/index.html"
+
+        self.copiedObjectInfo = None
+        self.copiedShape = None
         # Load setting in the main thread
         self.settings = Settings()
         self.settings.load()
@@ -390,6 +393,14 @@ class MainWindow(QMainWindow, WindowMixin):
         openPrevImg = action('&Prev Image', self.openPrevImg,
                              'a', 'prev', u'Open Prev')
 
+
+        # Copy the shape to othter images
+        copyShapeInfo = action('&Copy Shape', self.copyShapeinfo,
+                              't','copy info',u'Copy Shape Info')
+
+        pasteShapeInfo = action('&Paste Shape', self.pasteShapeInfo,
+                               'g', 'copy info', u'Copy Shape Info')
+
         verify = action('&Verify Image', self.verifyImg,
                         'space', 'verify', u'Verify Image')
 
@@ -498,7 +509,7 @@ class MainWindow(QMainWindow, WindowMixin):
                               fileMenuActions=(
                                   open, opendir, save, saveAs, close, resetAll, quit),
                               beginner=(), advanced=(),
-                              editMenu=(edit, copy, delete,
+                              editMenu=(edit, copy, delete,copyShapeInfo,pasteShapeInfo,
                                         None, color1),
                               beginnerContext=(create, edit, copy, delete),
                               advancedContext=(createMode, editMode, edit, copy,
@@ -949,7 +960,7 @@ class MainWindow(QMainWindow, WindowMixin):
         #jcehn = 20180401 add imginfo
         try:                         # try to fix this "'MainWindow' object has no attribute 'imgInfoLayout'"
             temp = self.imgInfoLayout
-            self.addImgInfo(shape)
+            self.addImgInfo(shape,self.copiedObjectInfo)
             self.shapesToBndWidgets[shape].boundingBoxInfoLayoutContainer.setVisible(True)
         except Exception as e:
             print(e.args)
@@ -1306,7 +1317,7 @@ class MainWindow(QMainWindow, WindowMixin):
                         self.objects[shapes[count]] = signinfos[count]
                 except:
                     print('load xml file to objects failed')
-                    #print(self.objects[shapes[count]])
+
 
                 self.loadImgInfo(shapes)
 
@@ -1327,7 +1338,7 @@ class MainWindow(QMainWindow, WindowMixin):
         return False
 
     # jchen  = 20180401 add imginfo btnbox funxtions
-    def addImgInfo(self,shape):
+    def addImgInfo(self,shape, objectInfo = {}):
         bndWidget = BoundingBoxWidget()
         self.shapesToBndWidgets[shape] = bndWidget
         self.bndWidgetsToShapes[bndWidget] = shape
@@ -1336,7 +1347,10 @@ class MainWindow(QMainWindow, WindowMixin):
         try:
             object = self.objects[shape]
         except:
-            self.objects[shape] = {}
+            self.objects[shape] = objectInfo
+
+        #get current selet
+
         try:
             self.imgInfoLayout.addWidget(bndWidget.boundingBoxInfoLayoutContainer)
         except Exception as e:
@@ -1366,6 +1380,7 @@ class MainWindow(QMainWindow, WindowMixin):
             try:
                 QComboBoxSub.setCurrentText(self.objects[shape]['subclass'])
             except:
+                print("load sub class failed in add img info")
                 pass
             self.QComboBoxSubsToBndWidgets[QComboBoxSub.objectName()] = bndWidget
 
@@ -2233,6 +2248,22 @@ class MainWindow(QMainWindow, WindowMixin):
         self.loadLabels(shapes)
         self.canvas.verified = tVocParseReader.verified
 
+    def copyShapeinfo(self):
+        try:
+            self.copiedShape = self.canvas.selectedShape
+            shape = self.canvas.selectedShape
+            self.copiedObjectInfo = self.objects[shape]
+        except:
+            pass
+
+    def pasteShapeInfo(self):
+        print("press pasteShape")
+        try:
+            self.addLabel(self.canvas.copyShape(self.copiedShape))
+            self.shapeSelectionChanged(True)
+        except Exception as e:
+            print("pasteShapeInfo failed: ",str(e))
+            pass
 
 def inverted(color):
     return QColor(*[255 - v for v in color.getRgb()])
@@ -2244,6 +2275,8 @@ def read(filename, default=None):
             return f.read()
     except:
         return default
+
+
 
 
 def get_main_app(argv=[]):

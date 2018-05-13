@@ -384,6 +384,16 @@ class Canvas(QWidget):
             self.boundedShiftShape(shape)
             return shape
 
+    def copyShape(self,copiedshape):
+        if copiedshape:
+            shape = copiedshape.copy()
+            self.deSelectShape()
+            self.shapes.append(shape)
+            shape.selected = True
+            self.selectedShape = shape
+            self.boundedShiftShape(shape)
+            return shape
+
     def boundedShiftShape(self, shape):
         # Try to move in one direction, and if it fails in another.
         # Give up if both fail.

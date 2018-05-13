@@ -336,7 +336,10 @@ class PascalVocReader:
             self.verified = False
 
         for object_iter in xmltree.findall('object'):
-            bndbox = object_iter.find("bndbox")
+            try:
+                bndbox = object_iter.find("bndbox")
+            except:
+                bndbox = object_iter.find("object")
             label = object_iter.find('name').text
             # Add chris
             difficult = False

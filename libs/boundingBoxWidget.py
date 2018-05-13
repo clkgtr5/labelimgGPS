@@ -29,6 +29,7 @@ class BoundingBoxWidget(QWidget):
         #self.numberOfBoundingBoxs.setMaximumWidth(50)
         self.pasteButton = QPushButton('Paste Geo')
         self.pasteButton.setMaximumWidth(80)
+        self.pasteButton.setMaximumWidth(80)
         self.pasteAllButton =  QPushButton('Paste All')
         self.pasteAllButton.setMaximumWidth(80)
         self.gotoGeoButton = QPushButton('Goto Geo')
@@ -55,7 +56,7 @@ class BoundingBoxWidget(QWidget):
             label.setMaximumHeight(30)
             boundingBoxInfoLayout.addWidget(label,x/10, x % 10)
             self.labelLineEdits[lineEditLabelsName[itr]] = QLineEdit()
-            self.labelLineEdits[lineEditLabelsName[itr]].setMaximumWidth(100)
+            self.labelLineEdits[lineEditLabelsName[itr]].setMaximumWidth(90)
             boundingBoxInfoLayout.addWidget(self.labelLineEdits[lineEditLabelsName[itr]],x/10,y % 10)
             x += 2
             y += 2
@@ -66,6 +67,7 @@ class BoundingBoxWidget(QWidget):
             label.setMaximumHeight(30)
             boundingBoxInfoLayout.addWidget(label,x/9,x % 9)
             self.dropDownBoxs[dropDownBoxLabelsname[itr]] = QComboBox()
+            #self.dropDownBoxs[dropDownBoxLabelsname[itr]].setMinimumWidth(50)
             self.dropDownBoxs[dropDownBoxLabelsname[itr]].setMaximumWidth(80)
             boundingBoxInfoLayout.addWidget(self.dropDownBoxs[dropDownBoxLabelsname[itr]],x/9 , y % 9)
             x += 2
