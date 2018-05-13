@@ -2261,6 +2261,7 @@ class MainWindow(QMainWindow, WindowMixin):
         try:
             self.addLabel(self.canvas.copyShape(self.copiedShape))
             self.shapeSelectionChanged(True)
+            self.setDirty()
         except Exception as e:
             print("pasteShapeInfo failed: ",str(e))
             pass
